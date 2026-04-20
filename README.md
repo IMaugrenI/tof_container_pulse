@@ -15,6 +15,8 @@ It generates a static `pulse.html` file so you can answer one question fast:
 - configurable warning thresholds
 - optional watch loop
 - static HTML output
+- no database
+- no cloud
 
 ## Requirements
 
@@ -24,16 +26,36 @@ It generates a static `pulse.html` file so you can answer one question fast:
 
 ## Quick start
 
-Generate once:
+### Linux
 
 ```bash
-python run.py --once
+python3 run.py --once
 ```
 
-Watch mode:
+### macOS
 
 ```bash
-python run.py --watch 60
+python3 run.py --once
+```
+
+### Windows (PowerShell)
+
+```powershell
+py run.py --once
+```
+
+## Watch mode
+
+### Linux / macOS
+
+```bash
+python3 run.py --watch 60
+```
+
+### Windows (PowerShell)
+
+```powershell
+py run.py --watch 60
 ```
 
 ## Config
@@ -43,10 +65,34 @@ Defaults are built in.
 Copy `config.example.yaml` to `config.yaml` if you want custom thresholds.
 YAML loading is optional and uses `PyYAML` from `requirements.txt`.
 
+Install optional YAML support:
+
+```bash
+pip install -r requirements.txt
+```
+
+Use a config file:
+
+```bash
+python run.py --once --config config.yaml
+```
+
+Write to another output path:
+
+```bash
+python run.py --once --output pulse.html
+```
+
+## Severity model
+
+- `ok` = running and within thresholds
+- `warn` = running but above CPU or RAM threshold
+- `critical` = container state is not healthy
+- `unknown` = state or live stats could not be determined cleanly
+
 ## Notes
 
 - single-host by design
 - read-only by design
-- no database
-- no cloud
 - no time-series history
+- no container restart or control actions
