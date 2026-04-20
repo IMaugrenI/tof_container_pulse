@@ -1,1 +1,32 @@
-<html></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{TITLE}}</title>
+  <meta http-equiv="refresh" content="60">
+</head>
+<body>
+  <h1>{{TITLE}}</h1>
+  <p>Host: {{HOSTNAME}} | Generated: {{GENERATED_AT}}</p>
+  <p>{{SUMMARY}}</p>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>State</th>
+        <th>CPU</th>
+        <th>Memory</th>
+        <th>Memory %</th>
+        <th>Image</th>
+        <th>Running For</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ROWS}}
+    </tbody>
+  </table>
+</body>
+</html>
