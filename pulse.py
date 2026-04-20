@@ -11,6 +11,7 @@ DEFAULT_CONFIG = {
     "cpu_warn_percent": 50.0,
     "memory_warn_mb": 1024.0,
     "docker_timeout_seconds": 8,
+    "container_overrides": {},
 }
 
 
@@ -62,6 +63,7 @@ def _percent(value: str):
 
 def _load_config(config_path):
     config = dict(DEFAULT_CONFIG)
+    config["container_overrides"] = {}
     if not config_path:
         return config
     path = Path(config_path)
@@ -74,7 +76,10 @@ def _load_config(config_path):
     loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(loaded, dict):
         raise ValueError("Config file must contain a mapping.")
-    config.update(loaded)
+    for key, value in loaded.items():
+        config[key] = value
+    if not isinstance(config.get("container_overrides"), dict):
+        config["container_overrides"] = {}
     return config
 
 
@@ -133,7 +138,7 @@ def _parse_mem_used_mb(mem_usage: str):
 def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
     config = _load_config(config_path)
     docker = shutil.which("docker")
-    last_success = _read_last_success(state_path)
+    previous_last_success = _read_last_success(state_path)
     generated_at = _now()
 
     if not docker:
@@ -160,8 +165,9 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
 
     rows_html = []
     total = running = warn = critical = unknown = 0
-    cpu_warn = float(config.get("cpu_warn_percent", 50.0))
-    memory_warn = float(config.get("memory_warn_mb", 1024.0))
+    default_cpu_warn = float(config.get("cpu_warn_percent", 50.0))
+    default_memory_warn = float(config.get("memory_warn_mb", 1024.0))
+    overrides = config.get("container_overrides", {}) or {}
 
     for row in _json_lines(ps.stdout):
         total += 1
@@ -172,6 +178,10 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
         state = _state(status)
         if state == "running":
             running += 1
+
+        container_override = overrides.get(name, {}) if isinstance(overrides, dict) else {}
+        cpu_warn = float(container_override.get("cpu_warn_percent", default_cpu_warn))
+        memory_warn = float(container_override.get("memory_warn_mb", default_memory_warn))
 
         stats_row = stats_lookup.get(name, {})
         cpu_value = _percent(str(stats_row.get("CPUPerc", "")))
@@ -221,7 +231,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
     html_text = html_text.replace("{{HOSTNAME}}", html.escape(socket.gethostname()))
     html_text = html_text.replace("{{GENERATED_AT}}", html.escape(generated_at))
-    html_text = html_text.replace("{{LAST_SUCCESS_AT}}", html.escape(generated_at))
+    html_text = html_text.replace("{{LAST_SUCCESS_AT}}", html.escape(previous_last_success))
     html_text = html_text.replace("{{REFRESH_SECONDS}}", str(int(config.get("refresh_seconds", 60))))
     html_text = html_text.replace("{{SUMMARY}}", html.escape(f"Total: {total} · Running: {running} · Warn: {warn} · Critical: {critical} · Unknown: {unknown}"))
     html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No refresh warnings.</p>")
