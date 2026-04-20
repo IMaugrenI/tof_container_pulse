@@ -6,6 +6,13 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+DEFAULT_CONFIG = {
+    "refresh_seconds": 60,
+    "cpu_warn_percent": 50.0,
+    "memory_warn_mb": 1024.0,
+    "docker_timeout_seconds": 8,
+}
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -53,28 +60,108 @@ def _percent(value: str):
         return None
 
 
-def generate_pulse(output_path="pulse.html", template_path="template.html"):
+def _load_config(config_path):
+    config = dict(DEFAULT_CONFIG)
+    if not config_path:
+        return config
+    path = Path(config_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    try:
+        import yaml
+    except Exception as exc:
+        raise RuntimeError("PyYAML is required for config files.") from exc
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(loaded, dict):
+        raise ValueError("Config file must contain a mapping.")
+    config.update(loaded)
+    return config
+
+
+def _read_last_success(state_path):
+    path = Path(state_path)
+    if not path.exists():
+        return "never"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return "never"
+    if isinstance(data, dict):
+        return str(data.get("last_success_at") or "never")
+    return "never"
+
+
+def _write_last_success(state_path, value):
+    Path(state_path).write_text(json.dumps({"last_success_at": value}, indent=2), encoding="utf-8")
+
+
+def _parse_mem_used_mb(mem_usage: str):
+    left = (mem_usage or "").split("/", 1)[0].strip().lower().replace(" ", "")
+    if not left:
+        return None
+    number = ""
+    unit = ""
+    for char in left:
+        if char.isdigit() or char == ".":
+            number += char
+        else:
+            unit += char
+    if not number:
+        return None
+    value = float(number)
+    if unit in ("b", ""):
+        return value / (1024 * 1024)
+    if unit == "kib":
+        return value / 1024
+    if unit == "mib":
+        return value
+    if unit == "gib":
+        return value * 1024
+    if unit == "tib":
+        return value * 1024 * 1024
+    if unit == "kb":
+        return value / 1000
+    if unit == "mb":
+        return value
+    if unit == "gb":
+        return value * 1000
+    if unit == "tb":
+        return value * 1000 * 1000
+    return None
+
+
+def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
+    config = _load_config(config_path)
     docker = shutil.which("docker")
+    last_success = _read_last_success(state_path)
+    generated_at = _now()
+
     if not docker:
         raise FileNotFoundError("Docker CLI not found in PATH.")
 
-    ps = _run([docker, "ps", "-a", "--format", "{{json .}}"])
+    messages = []
+    timeout_seconds = float(config.get("docker_timeout_seconds", 8))
+    ps = _run([docker, "ps", "-a", "--format", "{{json .}}"], timeout=timeout_seconds)
     if ps.returncode != 0:
         raise RuntimeError(ps.stderr.strip() or "docker ps failed")
 
     stats_lookup = {}
     try:
-        stats = _run([docker, "stats", "--no-stream", "--format", "{{json .}}"])
+        stats = _run([docker, "stats", "--no-stream", "--format", "{{json .}}"], timeout=timeout_seconds)
         if stats.returncode == 0:
             for row in _json_lines(stats.stdout):
                 name = row.get("Name") or row.get("Container")
                 if name:
                     stats_lookup[name] = row
+        else:
+            messages.append(f"Live stats unavailable: {stats.stderr.strip() or 'unknown error'}")
     except Exception:
-        pass
+        messages.append("Live stats unavailable.")
 
     rows_html = []
     total = running = warn = critical = unknown = 0
+    cpu_warn = float(config.get("cpu_warn_percent", 50.0))
+    memory_warn = float(config.get("memory_warn_mb", 1024.0))
 
     for row in _json_lines(ps.stdout):
         total += 1
@@ -90,6 +177,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html"):
         cpu_value = _percent(str(stats_row.get("CPUPerc", "")))
         mem_perc = str(stats_row.get("MemPerc", "-") or "-")
         mem_usage = str(stats_row.get("MemUsage", "-") or "-")
+        mem_used_mb = _parse_mem_used_mb(mem_usage)
         cpu_text = "-" if cpu_value is None else f"{cpu_value:.1f}%"
 
         severity = "ok"
@@ -102,10 +190,16 @@ def generate_pulse(output_path="pulse.html", template_path="template.html"):
             severity = "unknown"
             unknown += 1
             note = "no live stats"
-        elif cpu_value is not None and cpu_value > 50:
-            severity = "warn"
-            warn += 1
-            note = "cpu>50%"
+        else:
+            reasons = []
+            if cpu_value is not None and cpu_value > cpu_warn:
+                reasons.append(f"cpu>{cpu_warn:g}%")
+            if mem_used_mb is not None and mem_used_mb > memory_warn:
+                reasons.append(f"memory>{memory_warn:g}MB")
+            if reasons:
+                severity = "warn"
+                warn += 1
+                note = "; ".join(reasons)
 
         rows_html.append(
             "<tr>"
@@ -126,7 +220,11 @@ def generate_pulse(output_path="pulse.html", template_path="template.html"):
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
     html_text = html_text.replace("{{HOSTNAME}}", html.escape(socket.gethostname()))
-    html_text = html_text.replace("{{GENERATED_AT}}", html.escape(_now()))
+    html_text = html_text.replace("{{GENERATED_AT}}", html.escape(generated_at))
+    html_text = html_text.replace("{{LAST_SUCCESS_AT}}", html.escape(generated_at))
+    html_text = html_text.replace("{{REFRESH_SECONDS}}", str(int(config.get("refresh_seconds", 60))))
     html_text = html_text.replace("{{SUMMARY}}", html.escape(f"Total: {total} · Running: {running} · Warn: {warn} · Critical: {critical} · Unknown: {unknown}"))
+    html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No refresh warnings.</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
     Path(output_path).write_text(html_text, encoding="utf-8")
+    _write_last_success(state_path, generated_at)
