@@ -5,50 +5,32 @@
   <title>{{TITLE}}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="{{REFRESH_SECONDS}}">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 24px; background: #0f1115; color: #e9edf5; }
-    .wrap { max-width: 1200px; margin: 0 auto; }
-    .panel { background: #171a21; border: 1px solid #2a3140; border-radius: 16px; padding: 20px; }
-    .muted { color: #a3acc0; }
-    .messages { margin: 16px 0; }
-    .messages p { margin: 8px 0; color: #a3acc0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a3140; }
-    th { color: #a3acc0; font-size: 12px; text-transform: uppercase; }
-    .sev-ok { color: #1f9d55; }
-    .sev-warn { color: #d4a72c; }
-    .sev-critical { color: #d1242f; }
-    .sev-unknown { color: #6b7280; }
-    code { color: #e9edf5; }
-  </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="panel">
-      <h1>{{TITLE}}</h1>
-      <p class="muted">Host: {{HOSTNAME}} | Generated: {{GENERATED_AT}} | Last success: {{LAST_SUCCESS_AT}}</p>
-      <p>{{SUMMARY}}</p>
-      <div class="messages">{{MESSAGES}}</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Severity</th>
-            <th>Status</th>
-            <th>State</th>
-            <th>CPU</th>
-            <th>Memory</th>
-            <th>Memory %</th>
-            <th>Image</th>
-            <th>Running For</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{ROWS}}
-        </tbody>
-      </table>
-    </div>
+  <div>
+    <h1>{{TITLE}}</h1>
+    <p>Host: {{HOSTNAME}} | Generated: {{GENERATED_AT}} | Previous successful update: {{LAST_SUCCESS_AT}} | Refresh: {{REFRESH_SECONDS}}s</p>
+    <p>{{SUMMARY}}</p>
+    <div>{{MESSAGES}}</div>
+    <table border="1" cellpadding="6" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>State</th>
+          <th>CPU</th>
+          <th>Memory</th>
+          <th>Memory %</th>
+          <th>Image</th>
+          <th>Running For</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ROWS}}
+      </tbody>
+    </table>
   </div>
 </body>
 </html>
