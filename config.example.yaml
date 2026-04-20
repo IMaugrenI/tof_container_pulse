@@ -1,1 +1,4 @@
 refresh_seconds: 60
+cpu_warn_percent: 50
+memory_warn_mb: 1024
+docker_timeout_seconds: 8
