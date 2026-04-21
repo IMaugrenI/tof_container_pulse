@@ -24,6 +24,7 @@ It generates a static `pulse.html` file so you can answer one question fast:
 - no Docker SDK required
 - configurable warning thresholds
 - optional watch loop
+- optional multi-host view via Docker contexts
 - static HTML output
 - no database
 - no cloud
@@ -96,6 +97,41 @@ Write to another output path:
 python run.py --once --output pulse.html
 ```
 
+## Multi-host mode
+
+Multi-host is optional.
+If you do nothing, the tool stays in normal single-host mode.
+
+A neutral template is included:
+
+```text
+multi_host.example.yaml
+```
+
+Use it only if you actually want a combined view across multiple Docker contexts.
+
+### How to use it
+
+1. copy `multi_host.example.yaml` to `multi_host.yaml`
+2. fill in your real Docker contexts
+3. run:
+
+```bash
+python run.py --once --config multi_host.yaml
+```
+
+### Example
+
+```yaml
+hosts:
+  - name: local
+    docker_context: default
+  - name: nas
+    docker_context: nas
+```
+
+In multi-host mode, the page keeps the same logic and style, but adds a `Host` column and merges all configured hosts into one page.
+
 ## Severity model
 
 - `ok` = running and within thresholds
@@ -105,7 +141,8 @@ python run.py --once --output pulse.html
 
 ## Notes
 
-- single-host by design
+- single-host by default
+- optional multi-host via Docker contexts
 - read-only by design
 - no time-series history
 - no container restart or control actions
