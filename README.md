@@ -4,7 +4,7 @@
 
 Generate a simple static status page from Docker CLI data — read-only, local-first, no database, no cloud.
 
-![Container Pulse dashboard](assets/screenshots/pulse-main.png)
+![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
 *A real local host view showing container health, warning thresholds, and critical states in one page.*
 
