@@ -1,5 +1,11 @@
 # tof_container_pulse
 
+**Local Docker host status at a glance**
+
+Generate a simple static status page from Docker CLI data — read-only, local-first, no database, no cloud.
+
+---
+
 One host. One page. One glance.
 
 `tof_container_pulse` is a small local dashboard for Docker hosts.
