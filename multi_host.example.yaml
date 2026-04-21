@@ -1,0 +1,16 @@
+# Multi-host configuration (optional)
+#
+# This file does NOTHING unless you actively use it with:
+# python run.py --once --config multi_host.yaml
+#
+# Copy this file to multi_host.yaml and fill it.
+#
+# If you do not use this file, the tool runs in normal single-host mode.
+
+hosts:
+  # Example:
+  # - name: local
+  #   docker_context: default
+  # - name: server-2
+  #   docker_context: prod
+
