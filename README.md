@@ -36,6 +36,9 @@ It generates a static `pulse.html` file so you can answer one question fast:
 
 ## Quick start
 
+`--once` generates `pulse.html` and opens it automatically in your default browser.
+Use `--no-open` if you only want to generate the file.
+
 ### Linux
 
 ```bash
