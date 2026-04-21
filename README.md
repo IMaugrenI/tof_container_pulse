@@ -46,16 +46,34 @@ Use `--no-open` if you only want to generate the file.
 python3 run.py --once
 ```
 
+or
+
+```bash
+./scripts/linux/start_here.sh
+```
+
 ### macOS
 
 ```bash
 python3 run.py --once
 ```
 
+or
+
+```bash
+./scripts/macos/start_here.command
+```
+
 ### Windows (PowerShell)
 
 ```powershell
 py run.py --once
+```
+
+or
+
+```powershell
+./scripts/windows/start_here.ps1
 ```
 
 ## Watch mode
