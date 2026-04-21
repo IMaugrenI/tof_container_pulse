@@ -17,6 +17,20 @@ It generates a static `pulse.html` file so you can answer one question fast:
 
 > Is everything okay right now?
 
+## Role in the public product line
+
+Observe (system state visibility)
+
+### Works standalone
+Yes.
+
+### Integration
+None (observe-only)
+
+### Not intended for
+- controlling or triggering other tools
+- becoming part of an automated pipeline
+
 ## Features
 
 - Linux, macOS, Windows
