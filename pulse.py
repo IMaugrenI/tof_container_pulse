@@ -146,14 +146,18 @@ def _parse_mem_used_mb(mem_usage: str):
     return None
 
 
-def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, summary, messages, rows_html):
+def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html):
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
     html_text = html_text.replace("{{GENERATED_AT}}", html.escape(generated_at))
     html_text = html_text.replace("{{LAST_SUCCESS_AT}}", html.escape(previous_last_success))
     html_text = html_text.replace("{{REFRESH_SECONDS}}", str(int(refresh_seconds)))
-    html_text = html_text.replace("{{SUMMARY}}", html.escape(summary))
+    html_text = html_text.replace("{{TOTAL}}", str(int(counts.get("total", 0))))
+    html_text = html_text.replace("{{RUNNING}}", str(int(counts.get("running", 0))))
+    html_text = html_text.replace("{{WARN}}", str(int(counts.get("warn", 0))))
+    html_text = html_text.replace("{{CRITICAL}}", str(int(counts.get("critical", 0))))
+    html_text = html_text.replace("{{UNKNOWN}}", str(int(counts.get("unknown", 0))))
     html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No refresh warnings.</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
     Path(output_path).write_text(html_text, encoding="utf-8")
@@ -189,7 +193,7 @@ def _render_row_html(host_name, name, severity, status, state, cpu_text, mem_usa
         "<tr>"
         f"<td><code>{html.escape(host_name)}</code></td>"
         f"<td><code>{html.escape(name)}</code></td>"
-        f"<td class='sev-{severity}'>{html.escape(severity.upper())}</td>"
+        f"<td><span class='sev-badge sev-{severity}'>{html.escape(severity.upper())}</span></td>"
         f"<td>{html.escape(status)}</td>"
         f"<td>{html.escape(state)}</td>"
         f"<td>{html.escape(cpu_text)}</td>"
@@ -311,7 +315,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
 
         messages = []
         rows_html = []
-        total = running = warn = critical = unknown = 0
+        counts = {"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0}
 
         for host in _normalized_hosts(config):
             host_name = host["name"]
@@ -325,11 +329,11 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 )
                 rows_html.extend(host_rows)
                 messages.extend(host_messages)
-                total += host_counts["total"]
-                running += host_counts["running"]
-                warn += host_counts["warn"]
-                critical += host_counts["critical"]
-                unknown += host_counts["unknown"]
+                counts["total"] += host_counts["total"]
+                counts["running"] += host_counts["running"]
+                counts["warn"] += host_counts["warn"]
+                counts["critical"] += host_counts["critical"]
+                counts["unknown"] += host_counts["unknown"]
             except Exception as exc:
                 messages.append(f"Host {host_name}: refresh failed: {exc}")
 
@@ -339,7 +343,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             generated_at=generated_at,
             previous_last_success=previous_last_success,
             refresh_seconds=config.get("refresh_seconds", 60),
-            summary=f"Total: {total} · Running: {running} · Warn: {warn} · Critical: {critical} · Unknown: {unknown}",
+            counts=counts,
             messages=messages,
             rows_html=rows_html,
         )
@@ -352,7 +356,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             generated_at=generated_at,
             previous_last_success=previous_last_success,
             refresh_seconds=config.get("refresh_seconds", 60),
-            summary="Refresh failed",
+            counts={"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0},
             messages=[f"Refresh failed: {exc}"],
             rows_html=[],
         )
