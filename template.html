@@ -27,12 +27,13 @@
   <div class="wrap">
     <div class="panel">
       <h1>{{TITLE}}</h1>
-      <p class="meta">Host: {{HOSTNAME}} | Generated: {{GENERATED_AT}} | Previous successful update: {{LAST_SUCCESS_AT}} | Refresh: {{REFRESH_SECONDS}}s</p>
+      <p class="meta">Generated: {{GENERATED_AT}} | Previous successful update: {{LAST_SUCCESS_AT}} | Refresh: {{REFRESH_SECONDS}}s</p>
       <p class="summary">{{SUMMARY}}</p>
       <div class="messages">{{MESSAGES}}</div>
       <table>
         <thead>
           <tr>
+            <th>Host</th>
             <th>Name</th>
             <th>Severity</th>
             <th>Status</th>
