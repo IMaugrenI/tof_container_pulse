@@ -3,6 +3,11 @@ cpu_warn_percent: 50
 memory_warn_mb: 1024
 docker_timeout_seconds: 8
 
+# optional multi-host setup
+hosts:
+  - name: local
+    docker_context: default
+
 container_overrides:
   postgres:
     memory_warn_mb: 2048
