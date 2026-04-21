@@ -15,6 +15,13 @@ DEFAULT_CONFIG = {
     "hosts": None,
 }
 
+SEVERITY_ORDER = {
+    "critical": 0,
+    "warn": 1,
+    "unknown": 2,
+    "ok": 3,
+}
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -177,6 +184,24 @@ def _docker_base_command(docker_cli, docker_context):
     return command
 
 
+def _render_row_html(host_name, name, severity, status, state, cpu_text, mem_usage, mem_perc, image, running_for, note):
+    return (
+        "<tr>"
+        f"<td><code>{html.escape(host_name)}</code></td>"
+        f"<td><code>{html.escape(name)}</code></td>"
+        f"<td class='sev-{severity}'>{html.escape(severity.upper())}</td>"
+        f"<td>{html.escape(status)}</td>"
+        f"<td>{html.escape(state)}</td>"
+        f"<td>{html.escape(cpu_text)}</td>"
+        f"<td>{html.escape(mem_usage)}</td>"
+        f"<td>{html.escape(mem_perc)}</td>"
+        f"<td><code>{html.escape(image)}</code></td>"
+        f"<td>{html.escape(running_for)}</td>"
+        f"<td>{html.escape(note)}</td>"
+        "</tr>"
+    )
+
+
 def _collect_host_rows(host_name, docker_context, docker_cli, config):
     timeout_seconds = float(config.get("docker_timeout_seconds", 8))
     default_cpu_warn = float(config.get("cpu_warn_percent", 50.0))
@@ -184,7 +209,7 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
     overrides = config.get("container_overrides", {}) or {}
 
     messages = []
-    rows_html = []
+    rendered_rows = []
     counts = {"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0}
 
     base_cmd = _docker_base_command(docker_cli, docker_context)
@@ -247,22 +272,29 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                 counts["warn"] += 1
                 note = "; ".join(reasons)
 
-        rows_html.append(
-            "<tr>"
-            f"<td><code>{html.escape(host_name)}</code></td>"
-            f"<td><code>{html.escape(name)}</code></td>"
-            f"<td class='sev-{severity}'>{html.escape(severity.upper())}</td>"
-            f"<td>{html.escape(status)}</td>"
-            f"<td>{html.escape(state)}</td>"
-            f"<td>{html.escape(cpu_text)}</td>"
-            f"<td>{html.escape(mem_usage)}</td>"
-            f"<td>{html.escape(mem_perc)}</td>"
-            f"<td><code>{html.escape(image)}</code></td>"
-            f"<td>{html.escape(running_for)}</td>"
-            f"<td>{html.escape(note)}</td>"
-            "</tr>"
+        rendered_rows.append(
+            (
+                SEVERITY_ORDER.get(severity, 99),
+                host_name.lower(),
+                name.lower(),
+                _render_row_html(
+                    host_name=host_name,
+                    name=name,
+                    severity=severity,
+                    status=status,
+                    state=state,
+                    cpu_text=cpu_text,
+                    mem_usage=mem_usage,
+                    mem_perc=mem_perc,
+                    image=image,
+                    running_for=running_for,
+                    note=note,
+                ),
+            )
         )
 
+    rendered_rows.sort(key=lambda item: (item[0], item[1], item[2]))
+    rows_html = [item[3] for item in rendered_rows]
     return rows_html, messages, counts
 
 
