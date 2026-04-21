@@ -2,9 +2,9 @@
 
 > Die englische Hauptfassung liegt in `README.md`.
 
-Lokaler Docker-Host-Status auf einen Blick.
+**Lokaler Docker-Host-Status auf einen Blick**
 
-Erzeuge eine einfache statische Statusseite aus Docker-CLI-Daten — read-only, local-first, keine Datenbank, keine Cloud.
+Erzeuge eine einfache statische Statusseite aus Docker-CLI-Daten — read-only, lokal, keine Datenbank, keine Cloud.
 
 ![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
@@ -18,6 +18,21 @@ Ein Host. Eine Seite. Ein Blick.
 Es erzeugt eine statische `pulse.html`, damit du eine Frage schnell beantworten kannst:
 
 > Ist gerade alles in Ordnung?
+
+## Rolle in der öffentlichen Produktlinie
+
+Beobachten (Systemzustand sichtbar machen)
+
+### Funktioniert allein
+Ja.
+
+### Integration
+Keine (bewusst nur Beobachtung)
+
+### Nicht gedacht für
+- andere Tools zu steuern
+- automatisierte Prozesse auszulösen
+- Teil einer Verarbeitungskette zu werden
 
 ## Features
 
@@ -163,6 +178,6 @@ Im Multi-Host-Modus bleibt Logik und Stil gleich, aber die Seite ergänzt eine `
 
 - standardmäßig Single-Host
 - optional Multi-Host über Docker-Contexts
-- read-only by design
+- bewusst read-only
 - keine Zeitreihen-Historie
 - keine Restart- oder Kontrollaktionen
