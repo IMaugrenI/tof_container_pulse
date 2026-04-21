@@ -4,9 +4,10 @@ memory_warn_mb: 1024
 docker_timeout_seconds: 8
 
 # optional multi-host setup
-hosts:
-  - name: local
-    docker_context: default
+# leave hosts unset or empty to keep the normal single-host behavior
+# hosts:
+#   - name: local
+#     docker_context: default
 
 container_overrides:
   postgres:
