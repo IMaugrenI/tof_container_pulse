@@ -12,6 +12,7 @@ DEFAULT_CONFIG = {
     "memory_warn_mb": 1024.0,
     "docker_timeout_seconds": 8,
     "container_overrides": {},
+    "hosts": None,
 }
 
 
@@ -80,6 +81,9 @@ def _load_config(config_path):
         config[key] = value
     if not isinstance(config.get("container_overrides"), dict):
         config["container_overrides"] = {}
+    hosts = config.get("hosts")
+    if hosts is not None and not isinstance(hosts, list):
+        raise ValueError("hosts must be a list when provided.")
     return config
 
 
@@ -139,7 +143,6 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
-    html_text = html_text.replace("{{HOSTNAME}}", html.escape(socket.gethostname()))
     html_text = html_text.replace("{{GENERATED_AT}}", html.escape(generated_at))
     html_text = html_text.replace("{{LAST_SUCCESS_AT}}", html.escape(previous_last_success))
     html_text = html_text.replace("{{REFRESH_SECONDS}}", str(int(refresh_seconds)))
@@ -147,6 +150,120 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No refresh warnings.</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
     Path(output_path).write_text(html_text, encoding="utf-8")
+
+
+def _normalized_hosts(config):
+    hosts = config.get("hosts")
+    if hosts:
+        normalized = []
+        for item in hosts:
+            if not isinstance(item, dict):
+                continue
+            normalized.append(
+                {
+                    "name": str(item.get("name") or item.get("docker_context") or "unknown-host"),
+                    "docker_context": item.get("docker_context"),
+                }
+            )
+        if normalized:
+            return normalized
+    return [{"name": socket.gethostname(), "docker_context": None}]
+
+
+def _docker_base_command(docker_cli, docker_context):
+    command = [docker_cli]
+    if docker_context:
+        command.extend(["--context", str(docker_context)])
+    return command
+
+
+def _collect_host_rows(host_name, docker_context, docker_cli, config):
+    timeout_seconds = float(config.get("docker_timeout_seconds", 8))
+    default_cpu_warn = float(config.get("cpu_warn_percent", 50.0))
+    default_memory_warn = float(config.get("memory_warn_mb", 1024.0))
+    overrides = config.get("container_overrides", {}) or {}
+
+    messages = []
+    rows_html = []
+    counts = {"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0}
+
+    base_cmd = _docker_base_command(docker_cli, docker_context)
+    ps = _run(base_cmd + ["ps", "-a", "--format", "{{json .}}"], timeout=timeout_seconds)
+    if ps.returncode != 0:
+        raise RuntimeError(ps.stderr.strip() or f"docker ps failed for host {host_name}")
+
+    stats_lookup = {}
+    try:
+        stats = _run(base_cmd + ["stats", "--no-stream", "--format", "{{json .}}"], timeout=timeout_seconds)
+        if stats.returncode == 0:
+            for row in _json_lines(stats.stdout):
+                name = row.get("Name") or row.get("Container")
+                if name:
+                    stats_lookup[name] = row
+        else:
+            messages.append(f"Host {host_name}: live stats unavailable: {stats.stderr.strip() or 'unknown error'}")
+    except Exception:
+        messages.append(f"Host {host_name}: live stats unavailable.")
+
+    for row in _json_lines(ps.stdout):
+        counts["total"] += 1
+        name = str(row.get("Names") or row.get("Name") or "unknown")
+        image = str(row.get("Image") or "-")
+        status = str(row.get("Status") or "-")
+        running_for = str(row.get("RunningFor") or "-")
+        state = _state(status)
+        if state == "running":
+            counts["running"] += 1
+
+        container_override = overrides.get(name, {}) if isinstance(overrides, dict) else {}
+        cpu_warn = float(container_override.get("cpu_warn_percent", default_cpu_warn))
+        memory_warn = float(container_override.get("memory_warn_mb", default_memory_warn))
+
+        stats_row = stats_lookup.get(name, {})
+        cpu_value = _percent(str(stats_row.get("CPUPerc", "")))
+        mem_perc = str(stats_row.get("MemPerc", "-") or "-")
+        mem_usage = str(stats_row.get("MemUsage", "-") or "-")
+        mem_used_mb = _parse_mem_used_mb(mem_usage)
+        cpu_text = "-" if cpu_value is None else f"{cpu_value:.1f}%"
+
+        severity = "ok"
+        note = "-"
+        if state != "running":
+            severity = "critical"
+            counts["critical"] += 1
+            note = f"state is {state}"
+        elif not stats_row:
+            severity = "unknown"
+            counts["unknown"] += 1
+            note = "no live stats"
+        else:
+            reasons = []
+            if cpu_value is not None and cpu_value > cpu_warn:
+                reasons.append(f"cpu>{cpu_warn:g}%")
+            if mem_used_mb is not None and mem_used_mb > memory_warn:
+                reasons.append(f"memory>{memory_warn:g}MB")
+            if reasons:
+                severity = "warn"
+                counts["warn"] += 1
+                note = "; ".join(reasons)
+
+        rows_html.append(
+            "<tr>"
+            f"<td><code>{html.escape(host_name)}</code></td>"
+            f"<td><code>{html.escape(name)}</code></td>"
+            f"<td class='sev-{severity}'>{html.escape(severity.upper())}</td>"
+            f"<td>{html.escape(status)}</td>"
+            f"<td>{html.escape(state)}</td>"
+            f"<td>{html.escape(cpu_text)}</td>"
+            f"<td>{html.escape(mem_usage)}</td>"
+            f"<td>{html.escape(mem_perc)}</td>"
+            f"<td><code>{html.escape(image)}</code></td>"
+            f"<td>{html.escape(running_for)}</td>"
+            f"<td>{html.escape(note)}</td>"
+            "</tr>"
+        )
+
+    return rows_html, messages, counts
 
 
 def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
@@ -161,86 +278,28 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             raise FileNotFoundError("Docker CLI not found in PATH.")
 
         messages = []
-        timeout_seconds = float(config.get("docker_timeout_seconds", 8))
-        ps = _run([docker, "ps", "-a", "--format", "{{json .}}"], timeout=timeout_seconds)
-        if ps.returncode != 0:
-            raise RuntimeError(ps.stderr.strip() or "docker ps failed")
-
-        stats_lookup = {}
-        try:
-            stats = _run([docker, "stats", "--no-stream", "--format", "{{json .}}"], timeout=timeout_seconds)
-            if stats.returncode == 0:
-                for row in _json_lines(stats.stdout):
-                    name = row.get("Name") or row.get("Container")
-                    if name:
-                        stats_lookup[name] = row
-            else:
-                messages.append(f"Live stats unavailable: {stats.stderr.strip() or 'unknown error'}")
-        except Exception:
-            messages.append("Live stats unavailable.")
-
         rows_html = []
         total = running = warn = critical = unknown = 0
-        default_cpu_warn = float(config.get("cpu_warn_percent", 50.0))
-        default_memory_warn = float(config.get("memory_warn_mb", 1024.0))
-        overrides = config.get("container_overrides", {}) or {}
 
-        for row in _json_lines(ps.stdout):
-            total += 1
-            name = str(row.get("Names") or row.get("Name") or "unknown")
-            image = str(row.get("Image") or "-")
-            status = str(row.get("Status") or "-")
-            running_for = str(row.get("RunningFor") or "-")
-            state = _state(status)
-            if state == "running":
-                running += 1
-
-            container_override = overrides.get(name, {}) if isinstance(overrides, dict) else {}
-            cpu_warn = float(container_override.get("cpu_warn_percent", default_cpu_warn))
-            memory_warn = float(container_override.get("memory_warn_mb", default_memory_warn))
-
-            stats_row = stats_lookup.get(name, {})
-            cpu_value = _percent(str(stats_row.get("CPUPerc", "")))
-            mem_perc = str(stats_row.get("MemPerc", "-") or "-")
-            mem_usage = str(stats_row.get("MemUsage", "-") or "-")
-            mem_used_mb = _parse_mem_used_mb(mem_usage)
-            cpu_text = "-" if cpu_value is None else f"{cpu_value:.1f}%"
-
-            severity = "ok"
-            note = "-"
-            if state != "running":
-                severity = "critical"
-                critical += 1
-                note = f"state is {state}"
-            elif not stats_row:
-                severity = "unknown"
-                unknown += 1
-                note = "no live stats"
-            else:
-                reasons = []
-                if cpu_value is not None and cpu_value > cpu_warn:
-                    reasons.append(f"cpu>{cpu_warn:g}%")
-                if mem_used_mb is not None and mem_used_mb > memory_warn:
-                    reasons.append(f"memory>{memory_warn:g}MB")
-                if reasons:
-                    severity = "warn"
-                    warn += 1
-                    note = "; ".join(reasons)
-
-            rows_html.append(
-                "<tr>"
-                f"<td><code>{html.escape(name)}</code></td>"
-                f"<td class='sev-{severity}'>{html.escape(severity.upper())}</td>"
-                f"<td>{html.escape(status)}</td>"
-                f"<td>{html.escape(state)}</td>"
-                f"<td>{html.escape(cpu_text)}</td>"
-                f"<td>{html.escape(mem_usage)}</td>"
-                f"<td>{html.escape(mem_perc)}</td>"
-                f"<td><code>{html.escape(image)}</code></td>"
-                f"<td>{html.escape(running_for)}</td>"
-                f"<td>{html.escape(note)}</td>"
-                "</tr>"
-            )
+        for host in _normalized_hosts(config):
+            host_name = host["name"]
+            docker_context = host.get("docker_context")
+            try:
+                host_rows, host_messages, host_counts = _collect_host_rows(
+                    host_name=host_name,
+                    docker_context=docker_context,
+                    docker_cli=docker,
+                    config=config,
+                )
+                rows_html.extend(host_rows)
+                messages.extend(host_messages)
+                total += host_counts["total"]
+                running += host_counts["running"]
+                warn += host_counts["warn"]
+                critical += host_counts["critical"]
+                unknown += host_counts["unknown"]
+            except Exception as exc:
+                messages.append(f"Host {host_name}: refresh failed: {exc}")
 
         _render_html(
             template_path=template_path,
