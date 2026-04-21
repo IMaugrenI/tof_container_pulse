@@ -11,17 +11,25 @@
     .panel { background: #171a21; border: 1px solid #2a3140; border-radius: 16px; padding: 20px; }
     h1 { margin-top: 0; }
     .meta, .messages p { color: #a3acc0; }
-    .summary { font-weight: 700; margin: 18px 0; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 18px 0; }
+    .card { padding: 12px; border-radius: 10px; border: 1px solid #2a3140; text-align: center; }
+    .card strong { display: block; font-size: 18px; margin-top: 4px; }
+    .card-critical { border-color: #d1242f; }
+
     .messages { margin: 16px 0; padding: 12px 14px; border: 1px solid #2a3140; border-radius: 10px; }
     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
     thead { position: sticky; top: 0; background: #171a21; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a3140; vertical-align: top; }
     th { color: #a3acc0; font-size: 12px; text-transform: uppercase; }
     tr:hover { background: #1c212b; }
-    .sev-ok { color: #1f9d55; font-weight: 700; }
-    .sev-warn { color: #d4a72c; font-weight: 700; }
-    .sev-critical { color: #d1242f; font-weight: 700; }
-    .sev-unknown { color: #6b7280; font-weight: 700; }
+
+    .sev-badge { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+    .sev-ok { background: #1f9d5522; color: #1f9d55; }
+    .sev-warn { background: #d4a72c22; color: #d4a72c; }
+    .sev-critical { background: #d1242f22; color: #d1242f; }
+    .sev-unknown { background: #6b728022; color: #6b7280; }
+
     code { color: #e9edf5; }
   </style>
 </head>
@@ -30,8 +38,17 @@
     <div class="panel">
       <h1>{{TITLE}}</h1>
       <p class="meta">Generated: {{GENERATED_AT}} | Previous successful update: {{LAST_SUCCESS_AT}} | Refresh: {{REFRESH_SECONDS}}s</p>
-      <p class="summary">{{SUMMARY}}</p>
+
+      <div class="summary-grid">
+        <div class="card">Total<strong>{{TOTAL}}</strong></div>
+        <div class="card">Running<strong>{{RUNNING}}</strong></div>
+        <div class="card">Warn<strong>{{WARN}}</strong></div>
+        <div class="card card-critical">Critical<strong>{{CRITICAL}}</strong></div>
+        <div class="card">Unknown<strong>{{UNKNOWN}}</strong></div>
+      </div>
+
       <div class="messages">{{MESSAGES}}</div>
+
       <table>
         <thead>
           <tr>
