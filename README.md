@@ -17,6 +17,24 @@ It generates a static `pulse.html` file so you can answer one question fast:
 
 > Is everything okay right now?
 
+## What this repo is
+
+This repository is the public Observe repo in the product line.
+
+## Who it is for
+
+This repo is for self-hosters, local operators, and small teams who want simple Docker host visibility without adopting a larger monitoring stack.
+
+## What it is not
+
+This repo is not a control plane, not a cloud service, and not a hidden automation layer.
+
+## Where to go next
+
+- `tof-showcase` — public architecture and product-line overview
+- `tof_local_knowledge` — grounded local knowledge workflows
+- `tof_local_builder` — controlled local build workflows
+
 ## Role in the public product line
 
 Observe (system state visibility)
