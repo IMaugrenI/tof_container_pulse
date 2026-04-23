@@ -1,16 +1,18 @@
 # tof_container_pulse
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/IMaugrenI/IMaugrenI/main/assets/banner/tof_container_pulse_banner_clean.png" alt="tof_container_pulse banner" width="100%" />
+</p>
+
 > Die englische Hauptfassung liegt in `README.md`.
 
 **Lokaler Docker-Host-Status auf einen Blick**
 
-Erzeuge eine einfache statische Statusseite aus Docker-CLI-Daten — read-only, lokal, keine Datenbank, keine Cloud.
+Erzeuge eine einfache statische Statusseite aus Docker-CLI-Daten — read-only, local-first, keine Datenbank, keine Cloud.
 
 ![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
 *Ein echter lokaler Host-Blick mit Container-Gesundheit, Warnschwellen und kritischen Zuständen auf einer Seite.*
-
----
 
 Ein Host. Eine Seite. Ein Blick.
 
@@ -18,6 +20,24 @@ Ein Host. Eine Seite. Ein Blick.
 Es erzeugt eine statische `pulse.html`, damit du eine Frage schnell beantworten kannst:
 
 > Ist gerade alles in Ordnung?
+
+## Was dieses Repo ist
+
+Dieses Repository ist das öffentliche **Observe**-Repo in der Produktlinie.
+
+## Für wen es gedacht ist
+
+Dieses Repo ist für Self-Hoster, lokale Operator und kleine Teams, die einfache Docker-Host-Sichtbarkeit wollen, ohne einen größeren Monitoring-Stack einzuführen.
+
+## Was es nicht ist
+
+Dieses Repo ist kein Control Plane, kein Cloud-Dienst und keine versteckte Automationsschicht.
+
+## Wohin du als Nächstes gehen kannst
+
+- `tof-showcase` — öffentlicher Architektur- und Produktlinien-Überblick
+- `tof_local_knowledge` — grounded lokale Knowledge-Workflows
+- `tof_local_builder` — kontrollierte lokale Build-Workflows
 
 ## Rolle in der öffentlichen Produktlinie
 
@@ -173,6 +193,14 @@ Im Multi-Host-Modus bleibt Logik und Stil gleich, aber die Seite ergänzt eine `
 - `warn` = läuft, aber CPU oder RAM liegt über der Schwelle
 - `critical` = Container-Zustand ist nicht gesund
 - `unknown` = Zustand oder Live-Stats konnten nicht sauber bestimmt werden
+
+## Hinweis zu lokalen Pfaden und Sicherheit
+
+Container Pulse ist ein lokaler read-only Beobachter, kann aber Ausgabedateien und Statusdateien in benutzerdefinierte Pfade schreiben.
+Wenn du `--output`, `--state-file`, `--template` oder `--config` änderst, nutze nur Pfade, die du verstehst und kontrollierst.
+
+Für sichere Beispiele und Pfad-Hinweise siehe:
+- `docs/10_safe_paths_and_local_usage.md`
 
 ## Hinweise
 
