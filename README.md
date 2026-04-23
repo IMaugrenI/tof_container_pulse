@@ -189,6 +189,14 @@ In multi-host mode, the page keeps the same logic and style, but adds a `Host` c
 - `critical` = container state is not healthy
 - `unknown` = state or live stats could not be determined cleanly
 
+## Local path and safety note
+
+Container Pulse is a local read-only observer, but it can write output and state files to custom paths.
+If you change `--output`, `--state-file`, `--template`, or `--config`, use only paths you understand and control.
+
+For safe examples and path guidance, see:
+- `docs/10_safe_paths_and_local_usage.md`
+
 ## Notes
 
 - single-host by default
