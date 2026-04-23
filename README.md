@@ -10,8 +10,6 @@ Generate a simple static status page from Docker CLI data — read-only, local-f
 
 *A real local host view showing container health, warning thresholds, and critical states in one page.*
 
----
-
 One host. One page. One glance.
 
 `tof_container_pulse` is a small local dashboard for Docker hosts.
