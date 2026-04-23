@@ -1,5 +1,9 @@
 # tof_container_pulse
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/IMaugrenI/IMaugrenI/main/assets/banner/tof_container_pulse_banner_clean.png" alt="tof_container_pulse banner" width="100%" />
+</p>
+
 **Local Docker host status at a glance**
 
 Generate a simple static status page from Docker CLI data — read-only, local-first, no database, no cloud.
