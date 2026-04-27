@@ -69,6 +69,37 @@ def _percent(value: str):
         return None
 
 
+def _clamp_percent(value):
+    if value is None:
+        return None
+    return max(0.0, min(float(value), 100.0))
+
+
+def _metric_level(value):
+    if value is None:
+        return "empty"
+    if value >= 80:
+        return "critical"
+    if value >= 50:
+        return "warn"
+    return "ok"
+
+
+def _render_metric_html(label, value):
+    clamped = _clamp_percent(value)
+    if clamped is None:
+        return "<span class='metric metric-empty'><span class='metric-text'>-</span><span class='metric-track'><span class='metric-fill' style='width:0%'></span></span></span>"
+    level = _metric_level(clamped)
+    safe_label = html.escape(label)
+    width = f"{clamped:.1f}%"
+    return (
+        f"<span class='metric metric-{level}'>"
+        f"<span class='metric-text'>{safe_label}</span>"
+        f"<span class='metric-track'><span class='metric-fill' style='width:{width}'></span></span>"
+        "</span>"
+    )
+
+
 def _load_config(config_path):
     config = dict(DEFAULT_CONFIG)
     config["container_overrides"] = {}
@@ -188,7 +219,9 @@ def _docker_base_command(docker_cli, docker_context):
     return command
 
 
-def _render_row_html(host_name, name, severity, status, state, cpu_text, mem_usage, mem_perc, image, running_for, note):
+def _render_row_html(host_name, name, severity, status, state, cpu_text, cpu_value, mem_usage, mem_perc, mem_perc_value, image, running_for, note):
+    cpu_html = _render_metric_html(cpu_text, cpu_value)
+    mem_perc_html = _render_metric_html(mem_perc, mem_perc_value)
     return (
         "<tr>"
         f"<td><code>{html.escape(host_name)}</code></td>"
@@ -196,9 +229,9 @@ def _render_row_html(host_name, name, severity, status, state, cpu_text, mem_usa
         f"<td><span class='sev-badge sev-{severity}'>{html.escape(severity.upper())}</span></td>"
         f"<td>{html.escape(status)}</td>"
         f"<td>{html.escape(state)}</td>"
-        f"<td>{html.escape(cpu_text)}</td>"
+        f"<td>{cpu_html}</td>"
         f"<td>{html.escape(mem_usage)}</td>"
-        f"<td>{html.escape(mem_perc)}</td>"
+        f"<td>{mem_perc_html}</td>"
         f"<td><code>{html.escape(image)}</code></td>"
         f"<td>{html.escape(running_for)}</td>"
         f"<td>{html.escape(note)}</td>"
@@ -251,6 +284,7 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
         stats_row = stats_lookup.get(name, {})
         cpu_value = _percent(str(stats_row.get("CPUPerc", "")))
         mem_perc = str(stats_row.get("MemPerc", "-") or "-")
+        mem_perc_value = _percent(mem_perc)
         mem_usage = str(stats_row.get("MemUsage", "-") or "-")
         mem_used_mb = _parse_mem_used_mb(mem_usage)
         cpu_text = "-" if cpu_value is None else f"{cpu_value:.1f}%"
@@ -288,8 +322,10 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                     status=status,
                     state=state,
                     cpu_text=cpu_text,
+                    cpu_value=cpu_value,
                     mem_usage=mem_usage,
                     mem_perc=mem_perc,
+                    mem_perc_value=mem_perc_value,
                     image=image,
                     running_for=running_for,
                     note=note,
