@@ -155,13 +155,13 @@ pip install -r requirements.txt
 Use a config file:
 
 ```bash
-python run.py --once --config config.yaml
+python3 run.py --once --config config.yaml
 ```
 
 Write to another output path:
 
 ```bash
-python run.py --once --output pulse.html
+python3 run.py --once --output pulse.html
 ```
 
 ## Multi-host mode
@@ -184,7 +184,7 @@ Use it only if you actually want a combined view across multiple Docker contexts
 3. run:
 
 ```bash
-python run.py --once --config multi_host.yaml
+python3 run.py --once --config multi_host.yaml
 ```
 
 ### Example
@@ -213,6 +213,10 @@ If you change `--output`, `--state-file`, `--template`, or `--config`, use only 
 
 For safe examples and path guidance, see:
 - `docs/10_safe_paths_and_local_usage.md`
+
+For public screenshots and issue hygiene, see:
+- `docs/11_public_screenshot_safety.md`
+- `SECURITY.md`
 
 ## Public demo baseline
 

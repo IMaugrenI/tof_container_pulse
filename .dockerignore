@@ -1,8 +1,32 @@
+# Python/cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local/private configuration and generated runtime files
 .env
-.git
+.env.*
+config.yaml
+multi_host.yaml
+pulse.html
+.pulse_state.json
+*.log
+
+# Git/editor/OS state
+.git/
 .gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Public screenshots are not needed inside the runtime image
 assets/screenshots/
