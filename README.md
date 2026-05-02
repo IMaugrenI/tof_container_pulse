@@ -1,5 +1,7 @@
 # tof_container_pulse
 
+[![CI](https://github.com/IMaugrenI/tof_container_pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/IMaugrenI/tof_container_pulse/actions/workflows/ci.yml)
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/IMaugrenI/IMaugrenI/main/assets/banner/tof_container_pulse_banner_clean.png" alt="tof_container_pulse banner" width="100%" />
 </p>
@@ -7,6 +9,8 @@
 **Local Docker host status at a glance**
 
 Generate a simple static status page from Docker CLI data — read-only, local-first, no database, no cloud.
+
+![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
 *A real local host view showing container health, warning thresholds, and critical states in one page.*
 
@@ -16,6 +20,19 @@ One host. One page. One glance.
 It generates a static `pulse.html` file so you can answer one question fast:
 
 > Is everything okay right now?
+
+## Demo / Screenshot
+
+The screenshot above shows a real locally generated `pulse.html` dashboard using Docker CLI status data.
+
+The demo is intentionally simple:
+
+1. run the tool once
+2. generate `pulse.html`
+3. open the static page locally
+4. review container state, health, CPU, RAM, and severity at a glance
+
+No cloud service, database, remote sync, or control action is involved.
 
 ## What this repo is
 
@@ -196,6 +213,37 @@ If you change `--output`, `--state-file`, `--template`, or `--config`, use only 
 
 For safe examples and path guidance, see:
 - `docs/10_safe_paths_and_local_usage.md`
+
+## Public demo baseline
+
+This README is ready for a small public demo release once the current screenshot and quick-start path are confirmed locally.
+
+Suggested first release label:
+
+```text
+v0.1.0-public-demo
+```
+
+Recommended release note:
+
+```text
+First public demo baseline for tof_container_pulse.
+
+Includes:
+- local Docker CLI status reading
+- static pulse.html output
+- configurable warning thresholds
+- optional watch mode
+- optional multi-host view through Docker contexts
+- public screenshot in the README
+- CI smoke workflow for Python syntax and Docker image build
+
+Boundaries:
+- no cloud service
+- no database
+- no control-plane behavior
+- no container restart or automation actions
+```
 
 ## Notes
 
