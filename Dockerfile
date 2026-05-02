@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "run.py", "--once", "--no-open", "--output", "/data/pulse.html"]
+CMD ["python3", "run.py", "--once", "--no-open", "--output", "/data/pulse.html"]
