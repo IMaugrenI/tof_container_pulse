@@ -21,6 +21,23 @@ It generates a static `pulse.html` file so you can answer one question fast:
 
 > Is everything okay right now?
 
+## Pulse Suite direction
+
+The current public baseline is **Container Pulse**.
+
+The planned direction is a small local read-only Pulse Suite:
+
+- **Container Pulse** — Docker container status and severity
+- **Hardware Pulse** — host CPU, RAM, swap, load, uptime, and optional sensors
+- **Port Pulse** — local port exposure and Docker-published ports
+- **Storage Pulse** — disk, inodes, Docker logs, volumes, and backup-size checks
+- **Service Pulse** — configured health URLs, bot heartbeats, cron/script status, tunnel checks
+- **Security Pulse** — SSH/fail2ban signals and Docker operational hygiene checks
+
+The suite boundary stays the same: local, read-only, static HTML, no cloud, no database, and no control actions.
+
+See `docs/12_pulse_suite_roadmap.md` for the staged roadmap.
+
 ## Demo / Screenshot
 
 The screenshot above shows a real locally generated `pulse.html` dashboard using Docker CLI status data.
@@ -218,6 +235,9 @@ For public screenshots and issue hygiene, see:
 - `docs/11_public_screenshot_safety.md`
 - `SECURITY.md`
 
+For the multi-page direction, see:
+- `docs/12_pulse_suite_roadmap.md`
+
 ## Public demo baseline
 
 This README is ready for a small public demo release once the current screenshot and quick-start path are confirmed locally.
@@ -256,3 +276,4 @@ Boundaries:
 - read-only by design
 - no time-series history
 - no container restart or control actions
+- planned Pulse Suite expansion stays read-only and static
