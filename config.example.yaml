@@ -3,6 +3,17 @@ cpu_warn_percent: 50
 memory_warn_mb: 1024
 docker_timeout_seconds: 8
 
+# Hardware Pulse basic thresholds
+# These checks are read-only and intentionally lightweight.
+hardware_memory_warn_percent: 80
+hardware_memory_critical_percent: 90
+hardware_swap_warn_percent: 30
+hardware_swap_critical_percent: 60
+hardware_disk_warn_percent: 80
+hardware_disk_critical_percent: 90
+hardware_uptime_warn_days: 30
+hardware_uptime_critical_days: 60
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
