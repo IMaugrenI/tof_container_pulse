@@ -39,8 +39,8 @@ PULSE_PAGES: tuple[PulsePage, ...] = (
         title="Hardware Pulse",
         output_path="hardware.html",
         collector_module="hardware",
-        status="planned",
-        summary="Host CPU, RAM, swap, load, uptime, disk summary, and optional sensors.",
+        status="active",
+        summary="Host RAM, swap, load, uptime, disk summary, and optional sensor placeholders.",
     ),
     PulsePage(
         key="ports",
