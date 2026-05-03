@@ -9,9 +9,14 @@
     :root {
       --bg-0: #050914;
       --bg-1: #07111f;
+      --bg-2: #030712;
       --panel: rgba(13, 24, 39, 0.92);
+      --panel-soft: rgba(8, 15, 27, 0.72);
+      --panel-softer: rgba(8, 17, 30, 0.74);
       --panel-line: rgba(126, 240, 255, 0.18);
       --text: #eef6ff;
+      --text-strong: #ffffff;
+      --code-text: #dcecff;
       --muted: #97a7bd;
       --muted-2: #6f8096;
       --teal: #36f3d3;
@@ -21,10 +26,38 @@
       --red: #ff5b5f;
       --unknown: #94a8bd;
       --shadow: rgba(0, 0, 0, 0.45);
+      --grid-line: rgba(54, 243, 211, 0.04);
+      --hero-line-a: rgba(54, 243, 211, 0.15);
+      --hero-line-b: rgba(40, 199, 255, 0.10);
+      --glow-a: rgba(54, 243, 211, 0.18);
+      --glow-b: rgba(40, 199, 255, 0.12);
+      --glow-c: rgba(54, 243, 211, 0.12);
       --radius-xl: 28px;
       --radius-lg: 18px;
       --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    body.light {
+      --bg-0: #edf4fb;
+      --bg-1: #dceafe;
+      --bg-2: #f8fbff;
+      --panel: rgba(255, 255, 255, 0.90);
+      --panel-soft: rgba(255, 255, 255, 0.70);
+      --panel-softer: rgba(248, 250, 252, 0.88);
+      --panel-line: rgba(15, 118, 110, 0.18);
+      --text: #122033;
+      --text-strong: #0b1120;
+      --code-text: #0f172a;
+      --muted: #526174;
+      --muted-2: #718096;
+      --shadow: rgba(15, 23, 42, 0.14);
+      --grid-line: rgba(15, 118, 110, 0.05);
+      --hero-line-a: rgba(15, 118, 110, 0.16);
+      --hero-line-b: rgba(37, 99, 235, 0.10);
+      --glow-a: rgba(20, 184, 166, 0.18);
+      --glow-b: rgba(37, 99, 235, 0.12);
+      --glow-c: rgba(20, 184, 166, 0.10);
     }
 
     * { box-sizing: border-box; }
@@ -37,11 +70,12 @@
       font-family: var(--font);
       color: var(--text);
       background:
-        radial-gradient(circle at 18% 10%, rgba(54, 243, 211, 0.18), transparent 28%),
-        radial-gradient(circle at 84% 18%, rgba(40, 199, 255, 0.12), transparent 30%),
-        radial-gradient(circle at 50% 120%, rgba(54, 243, 211, 0.12), transparent 34%),
-        linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 48%, #030712 100%);
+        radial-gradient(circle at 18% 10%, var(--glow-a), transparent 28%),
+        radial-gradient(circle at 84% 18%, var(--glow-b), transparent 30%),
+        radial-gradient(circle at 50% 120%, var(--glow-c), transparent 34%),
+        linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 48%, var(--bg-2) 100%);
       overflow-x: hidden;
+      transition: background 180ms ease, color 180ms ease;
     }
 
     body::before,
@@ -55,16 +89,16 @@
 
     body::before {
       background-image:
-        linear-gradient(rgba(54, 243, 211, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(54, 243, 211, 0.04) 1px, transparent 1px);
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
       background-size: 56px 56px;
       mask-image: radial-gradient(circle at 50% 50%, black 0%, transparent 74%);
     }
 
     body::after {
       background:
-        linear-gradient(90deg, transparent 0%, rgba(54, 243, 211, 0.15) 48%, transparent 100%) 0 12% / 100% 1px no-repeat,
-        linear-gradient(90deg, transparent 0%, rgba(40, 199, 255, 0.10) 48%, transparent 100%) 0 86% / 100% 1px no-repeat;
+        linear-gradient(90deg, transparent 0%, var(--hero-line-a) 48%, transparent 100%) 0 12% / 100% 1px no-repeat,
+        linear-gradient(90deg, transparent 0%, var(--hero-line-b) 48%, transparent 100%) 0 86% / 100% 1px no-repeat;
       opacity: 0.42;
     }
 
@@ -103,6 +137,13 @@
         linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)),
         rgba(5, 12, 22, 0.9);
       box-shadow: 0 0 34px rgba(54, 243, 211, 0.18), inset 0 0 22px rgba(54, 243, 211, 0.06);
+    }
+
+    body.light .logo {
+      background:
+        linear-gradient(145deg, rgba(20, 184, 166, 0.16), rgba(37, 99, 235, 0.06)),
+        rgba(255, 255, 255, 0.86);
+      box-shadow: 0 0 28px rgba(20, 184, 166, 0.14), inset 0 0 18px rgba(20, 184, 166, 0.06);
     }
 
     .logo::before {
@@ -148,7 +189,7 @@
       line-height: 1.45;
     }
 
-    .tagline strong { color: var(--text); font-weight: 700; }
+    .tagline strong { color: var(--text-strong); font-weight: 700; }
 
     .hero-meta {
       justify-self: end;
@@ -158,6 +199,36 @@
       align-items: flex-end;
     }
 
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .control-button {
+      appearance: none;
+      border: 1px solid var(--panel-line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      min-height: 32px;
+      color: var(--text);
+      background: var(--panel-soft);
+      box-shadow: inset 0 0 18px rgba(255,255,255,0.03);
+      white-space: nowrap;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+    }
+
+    .control-button:hover {
+      border-color: rgba(54, 243, 211, 0.42);
+      transform: translateY(-1px);
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -165,8 +236,8 @@
       padding: 9px 13px;
       border: 1px solid var(--panel-line);
       border-radius: 999px;
-      color: #d9e7f6;
-      background: rgba(8, 15, 27, 0.72);
+      color: var(--text);
+      background: var(--panel-soft);
       box-shadow: inset 0 0 20px rgba(255,255,255,0.03);
       white-space: nowrap;
       font-size: 13px;
@@ -247,7 +318,7 @@
       text-align: left;
       background:
         linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.012)),
-        rgba(8, 17, 30, 0.74);
+        var(--panel-softer);
       box-shadow: inset 0 0 24px rgba(255,255,255,0.018);
     }
 
@@ -275,7 +346,7 @@
     .card strong {
       display: block;
       margin-top: 8px;
-      color: var(--text);
+      color: var(--text-strong);
       font-size: clamp(24px, 2.6vw, 34px);
       line-height: 0.95;
       letter-spacing: -0.055em;
@@ -306,7 +377,7 @@
       padding: 12px 14px;
       border: 1px solid rgba(151, 167, 189, 0.16);
       border-radius: var(--radius-lg);
-      background: rgba(8, 15, 27, 0.68);
+      background: var(--panel-soft);
       color: var(--muted);
     }
 
@@ -340,6 +411,8 @@
       box-shadow: inset 0 0 34px rgba(0,0,0,0.15);
     }
 
+    body.light .table-shell { background: rgba(255, 255, 255, 0.62); }
+
     table {
       width: 100%;
       min-width: 1040px;
@@ -353,6 +426,8 @@
       background: rgba(12, 23, 38, 0.96);
       backdrop-filter: blur(10px);
     }
+
+    body.light thead { background: rgba(241, 245, 249, 0.96); }
 
     th, td {
       text-align: left;
@@ -412,7 +487,7 @@
     }
 
     .metric-text {
-      color: #dcecff;
+      color: var(--code-text);
       font-family: var(--mono);
       font-size: 12px;
       white-space: nowrap;
@@ -443,7 +518,7 @@
     .metric-empty .metric-text { color: var(--muted-2); }
 
     code {
-      color: #dcecff;
+      color: var(--code-text);
       font-family: var(--mono);
       font-size: 0.94em;
     }
@@ -462,7 +537,7 @@
       padding: 14px;
       border: 1px solid rgba(151, 167, 189, 0.14);
       border-radius: var(--radius-lg);
-      background: rgba(8, 15, 27, 0.56);
+      background: var(--panel-soft);
     }
 
     .feature-icon {
@@ -480,7 +555,7 @@
     .feature strong {
       display: block;
       margin-bottom: 2px;
-      color: var(--text);
+      color: var(--text-strong);
       font-size: 14px;
     }
 
@@ -500,6 +575,7 @@
       body { padding: 20px; }
       .hero, .topline { grid-template-columns: 1fr; }
       .hero-meta, .status-strip { justify-self: start; align-items: flex-start; justify-content: flex-start; }
+      .controls { justify-content: flex-start; }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .summary-grid .card-total { grid-column: 1 / -1; }
       .feature-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -524,33 +600,37 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Container <span class="pulse-word">Pulse</span></h1>
-          <p class="tagline"><strong>Local Docker host status at a glance.</strong><br>Read-only. Static HTML. No cloud. No database.</p>
+          <p class="tagline"><strong data-i18n="taglineStrong">Local Docker host status at a glance.</strong><br><span data-i18n="taglineRest">Read-only. Static HTML. No cloud. No database.</span></p>
         </div>
       </div>
       <div class="hero-meta">
-        <span class="pill"><span class="dot"></span> One host. One page. One glance.</span>
-        <span class="pill">Refresh every {{REFRESH_SECONDS}}s</span>
+        <div class="controls" aria-label="Dashboard display controls">
+          <button class="control-button" type="button" id="language-toggle" onclick="toggleLanguage()">Deutsch</button>
+          <button class="control-button" type="button" id="theme-toggle" onclick="toggleTheme()">Light</button>
+        </div>
+        <span class="pill"><span class="dot"></span> <span data-i18n="oneGlance">One host. One page. One glance.</span></span>
+        <span class="pill"><span data-i18n="refreshEvery">Refresh every</span> {{REFRESH_SECONDS}}s</span>
       </div>
     </header>
 
     <main class="panel">
       <section class="topline" aria-label="Dashboard metadata">
         <div>
-          <p class="meta">Generated: {{GENERATED_AT}}<br>Previous successful update: {{LAST_SUCCESS_AT}}</p>
+          <p class="meta"><span data-i18n="generated">Generated</span>: {{GENERATED_AT}}<br><span data-i18n="previousUpdate">Previous successful update</span>: {{LAST_SUCCESS_AT}}</p>
         </div>
         <div class="status-strip">
-          <span class="pill"><span class="dot"></span> Local observer</span>
-          <span class="pill">Read-only Docker CLI</span>
-          <span class="pill">Static output</span>
+          <span class="pill"><span class="dot"></span> <span data-i18n="localObserver">Local observer</span></span>
+          <span class="pill" data-i18n="readOnlyCli">Read-only Docker CLI</span>
+          <span class="pill" data-i18n="staticOutput">Static output</span>
         </div>
       </section>
 
       <section class="summary-grid" aria-label="Container status summary">
-        <div class="card card-total"><span>Total</span><strong>{{TOTAL}}</strong></div>
-        <div class="card card-running"><span>Running</span><strong>{{RUNNING}}</strong></div>
-        <div class="card card-warn"><span>Warn</span><strong>{{WARN}}</strong></div>
-        <div class="card card-critical"><span>Critical</span><strong>{{CRITICAL}}</strong></div>
-        <div class="card card-unknown"><span>Unknown</span><strong>{{UNKNOWN}}</strong></div>
+        <div class="card card-total"><span data-i18n="total">Total</span><strong>{{TOTAL}}</strong></div>
+        <div class="card card-running"><span data-i18n="running">Running</span><strong>{{RUNNING}}</strong></div>
+        <div class="card card-warn"><span data-i18n="warn">Warn</span><strong>{{WARN}}</strong></div>
+        <div class="card card-critical"><span data-i18n="critical">Critical</span><strong>{{CRITICAL}}</strong></div>
+        <div class="card card-unknown"><span data-i18n="unknown">Unknown</span><strong>{{UNKNOWN}}</strong></div>
       </section>
 
       <section class="messages" aria-label="Refresh messages">
@@ -558,25 +638,25 @@
       </section>
 
       <section class="table-title" aria-label="Container overview title">
-        <h2>Container overview</h2>
-        <span>CPU and memory are shown as quick visual load bars.</span>
+        <h2 data-i18n="containerOverview">Container overview</h2>
+        <span data-i18n="loadBars">CPU and memory are shown as quick visual load bars.</span>
       </section>
 
       <section class="table-shell" aria-label="Container details">
         <table>
           <thead>
             <tr>
-              <th>Host</th>
-              <th>Name</th>
-              <th>Severity</th>
-              <th>Status</th>
-              <th>State</th>
+              <th data-i18n="host">Host</th>
+              <th data-i18n="name">Name</th>
+              <th data-i18n="severity">Severity</th>
+              <th data-i18n="status">Status</th>
+              <th data-i18n="state">State</th>
               <th>CPU</th>
-              <th>Memory</th>
-              <th>Memory %</th>
-              <th>Image</th>
-              <th>Running For</th>
-              <th>Notes</th>
+              <th data-i18n="memory">Memory</th>
+              <th data-i18n="memoryPercent">Memory %</th>
+              <th data-i18n="image">Image</th>
+              <th data-i18n="runningFor">Running For</th>
+              <th data-i18n="notes">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -586,14 +666,135 @@
       </section>
 
       <section class="feature-strip" aria-label="Design principles">
-        <div class="feature"><span class="feature-icon">✓</span><div><strong>100% local</strong><small>Your Docker status stays on your machine.</small></div></div>
-        <div class="feature"><span class="feature-icon">🔒</span><div><strong>Read-only</strong><small>Observes status without controlling containers.</small></div></div>
-        <div class="feature"><span class="feature-icon">∅</span><div><strong>No cloud</strong><small>No account, no remote dashboard, no database.</small></div></div>
-        <div class="feature"><span class="feature-icon">⚡</span><div><strong>Fast glance</strong><small>Built for quick checks, not monitoring bloat.</small></div></div>
+        <div class="feature"><span class="feature-icon">✓</span><div><strong data-i18n="featureLocalTitle">100% local</strong><small data-i18n="featureLocalText">Your Docker status stays on your machine.</small></div></div>
+        <div class="feature"><span class="feature-icon">🔒</span><div><strong data-i18n="featureReadonlyTitle">Read-only</strong><small data-i18n="featureReadonlyText">Observes status without controlling containers.</small></div></div>
+        <div class="feature"><span class="feature-icon">∅</span><div><strong data-i18n="featureCloudTitle">No cloud</strong><small data-i18n="featureCloudText">No account, no remote dashboard, no database.</small></div></div>
+        <div class="feature"><span class="feature-icon">⚡</span><div><strong data-i18n="featureGlanceTitle">Fast glance</strong><small data-i18n="featureGlanceText">Built for quick checks, not monitoring bloat.</small></div></div>
       </section>
 
-      <p class="footer-note">Container Pulse is a local, static observer page. It does not restart, stop, or modify containers.</p>
+      <p class="footer-note" data-i18n="footerNote">Container Pulse is a local, static observer page. It does not restart, stop, or modify containers.</p>
     </main>
   </div>
+
+  <script>
+    const I18N = {
+      en: {
+        taglineStrong: 'Local Docker host status at a glance.',
+        taglineRest: 'Read-only. Static HTML. No cloud. No database.',
+        languageButton: 'Deutsch',
+        themeLightButton: 'Light',
+        themeDarkButton: 'Dark',
+        oneGlance: 'One host. One page. One glance.',
+        refreshEvery: 'Refresh every',
+        generated: 'Generated',
+        previousUpdate: 'Previous successful update',
+        localObserver: 'Local observer',
+        readOnlyCli: 'Read-only Docker CLI',
+        staticOutput: 'Static output',
+        total: 'Total',
+        running: 'Running',
+        warn: 'Warn',
+        critical: 'Critical',
+        unknown: 'Unknown',
+        containerOverview: 'Container overview',
+        loadBars: 'CPU and memory are shown as quick visual load bars.',
+        host: 'Host',
+        name: 'Name',
+        severity: 'Severity',
+        status: 'Status',
+        state: 'State',
+        memory: 'Memory',
+        memoryPercent: 'Memory %',
+        image: 'Image',
+        runningFor: 'Running For',
+        notes: 'Notes',
+        featureLocalTitle: '100% local',
+        featureLocalText: 'Your Docker status stays on your machine.',
+        featureReadonlyTitle: 'Read-only',
+        featureReadonlyText: 'Observes status without controlling containers.',
+        featureCloudTitle: 'No cloud',
+        featureCloudText: 'No account, no remote dashboard, no database.',
+        featureGlanceTitle: 'Fast glance',
+        featureGlanceText: 'Built for quick checks, not monitoring bloat.',
+        footerNote: 'Container Pulse is a local, static observer page. It does not restart, stop, or modify containers.',
+      },
+      de: {
+        taglineStrong: 'Lokaler Docker-Host-Status auf einen Blick.',
+        taglineRest: 'Nur lesend. Statisches HTML. Keine Cloud. Keine Datenbank.',
+        languageButton: 'English',
+        themeLightButton: 'Hell',
+        themeDarkButton: 'Dunkel',
+        oneGlance: 'Ein Host. Eine Seite. Ein Blick.',
+        refreshEvery: 'Aktualisierung alle',
+        generated: 'Erstellt',
+        previousUpdate: 'Letztes erfolgreiches Update',
+        localObserver: 'Lokaler Observer',
+        readOnlyCli: 'Nur lesender Docker-CLI-Zugriff',
+        staticOutput: 'Statische Ausgabe',
+        total: 'Gesamt',
+        running: 'Laufend',
+        warn: 'Warnung',
+        critical: 'Kritisch',
+        unknown: 'Unbekannt',
+        containerOverview: 'Container-Übersicht',
+        loadBars: 'CPU und Speicher werden als schnelle visuelle Lastbalken angezeigt.',
+        host: 'Host',
+        name: 'Name',
+        severity: 'Schweregrad',
+        status: 'Status',
+        state: 'Zustand',
+        memory: 'Speicher',
+        memoryPercent: 'Speicher %',
+        image: 'Image',
+        runningFor: 'Läuft seit',
+        notes: 'Hinweise',
+        featureLocalTitle: '100% lokal',
+        featureLocalText: 'Dein Docker-Status bleibt auf deiner Maschine.',
+        featureReadonlyTitle: 'Nur lesend',
+        featureReadonlyText: 'Beobachtet Status, ohne Container zu steuern.',
+        featureCloudTitle: 'Keine Cloud',
+        featureCloudText: 'Kein Account, kein Remote-Dashboard, keine Datenbank.',
+        featureGlanceTitle: 'Schneller Blick',
+        featureGlanceText: 'Gebaut für schnelle Checks, nicht für Monitoring-Bloat.',
+        footerNote: 'Container Pulse ist eine lokale, statische Observer-Seite. Sie startet, stoppt oder verändert keine Container.',
+      },
+    };
+
+    let currentLanguage = localStorage.getItem('tof_container_pulse_language') || 'en';
+    let currentTheme = localStorage.getItem('tof_container_pulse_theme') || 'dark';
+
+    function t(key) {
+      return (I18N[currentLanguage] && I18N[currentLanguage][key]) || I18N.en[key] || key;
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage;
+      document.querySelectorAll('[data-i18n]').forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+      });
+      document.getElementById('language-toggle').textContent = t('languageButton');
+      document.getElementById('theme-toggle').textContent = currentTheme === 'dark' ? t('themeLightButton') : t('themeDarkButton');
+      localStorage.setItem('tof_container_pulse_language', currentLanguage);
+    }
+
+    function applyTheme() {
+      document.body.classList.toggle('light', currentTheme === 'light');
+      document.getElementById('theme-toggle').textContent = currentTheme === 'dark' ? t('themeLightButton') : t('themeDarkButton');
+      localStorage.setItem('tof_container_pulse_theme', currentTheme);
+    }
+
+    function toggleLanguage() {
+      currentLanguage = currentLanguage === 'en' ? 'de' : 'en';
+      applyLanguage();
+    }
+
+    function toggleTheme() {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      applyTheme();
+    }
+
+    applyTheme();
+    applyLanguage();
+  </script>
 </body>
 </html>
