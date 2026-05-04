@@ -1,13 +1,14 @@
 """Small static UI post-processing helpers.
 
-These helpers only adjust generated HTML presentation.
-They do not collect system data, call Docker, inspect hardware, or perform
-host actions.
+These helpers only adjust generated HTML presentation and generated-text
+language switching. They do not collect system data, call Docker, inspect
+hardware, scan ports, or perform host actions.
 """
 
 from pathlib import Path
 
 SOFT_LIGHT_STYLE_ID = "tof-soft-light-mode-overrides"
+GENERATED_L10N_SCRIPT_ID = "tof-generated-l10n-overrides"
 CONTAINER_NAV_MARKER = "tof-container-suite-navigation"
 
 SOFT_LIGHT_STYLE = f"""
@@ -105,14 +106,44 @@ SOFT_LIGHT_STYLE = f"""
 </style>
 """.strip()
 
+GENERATED_L10N_SCRIPT = f"""
+<script id=\"{GENERATED_L10N_SCRIPT_ID}\">
+(function () {{
+  function currentLang() {{
+    return localStorage.getItem('tof_container_pulse_language') || document.documentElement.lang || 'en';
+  }}
+
+  function applyGeneratedLanguage() {{
+    var lang = currentLang() === 'de' ? 'de' : 'en';
+    document.querySelectorAll('[data-l10n-en][data-l10n-de]').forEach(function (element) {{
+      element.textContent = lang === 'de' ? element.dataset.l10nDe : element.dataset.l10nEn;
+    }});
+    document.querySelectorAll('[data-l10n-title-en][data-l10n-title-de]').forEach(function (element) {{
+      element.setAttribute('title', lang === 'de' ? element.dataset.l10nTitleDe : element.dataset.l10nTitleEn);
+    }});
+  }}
+
+  var baseApplyLanguage = window.applyLanguage;
+  window.applyLanguage = function () {{
+    if (typeof baseApplyLanguage === 'function') {{
+      baseApplyLanguage();
+    }}
+    applyGeneratedLanguage();
+  }};
+
+  applyGeneratedLanguage();
+}}());
+</script>
+""".strip()
+
 CONTAINER_NAV_HTML = f"""
         <nav class=\"nav-strip\" id=\"{CONTAINER_NAV_MARKER}\" aria-label=\"Pulse Suite navigation\">
-          <a class=\"nav-link active\" href=\"pulse.html\">Container</a>
-          <a class=\"nav-link\" href=\"hardware.html\">Hardware</a>
-          <a class=\"nav-link\" href=\"ports.html\">Ports</a>
-          <span class=\"nav-link disabled\">Storage</span>
-          <span class=\"nav-link disabled\">Services</span>
-          <span class=\"nav-link disabled\">Security</span>
+          <a class=\"nav-link active\" href=\"pulse.html\"><span data-l10n-en=\"Container\" data-l10n-de=\"Container\">Container</span></a>
+          <a class=\"nav-link\" href=\"hardware.html\"><span data-l10n-en=\"Hardware\" data-l10n-de=\"Hardware\">Hardware</span></a>
+          <a class=\"nav-link\" href=\"ports.html\"><span data-l10n-en=\"Ports\" data-l10n-de=\"Ports\">Ports</span></a>
+          <span class=\"nav-link disabled\"><span data-l10n-en=\"Storage\" data-l10n-de=\"Speicher\">Storage</span></span>
+          <span class=\"nav-link disabled\"><span data-l10n-en=\"Services\" data-l10n-de=\"Dienste\">Services</span></span>
+          <span class=\"nav-link disabled\"><span data-l10n-en=\"Security\" data-l10n-de=\"Sicherheit\">Security</span></span>
         </nav>
 """.rstrip()
 
@@ -130,6 +161,25 @@ def apply_soft_light_mode_overrides(output_path: str) -> None:
         if marker in html:
             html = html.replace(marker, f"  {SOFT_LIGHT_STYLE}\n{marker}", 1)
 
+    path.write_text(html, encoding="utf-8")
+
+
+def apply_generated_l10n(output_path: str) -> None:
+    """Enable language switching for Python-generated HTML fragments."""
+
+    path = Path(output_path)
+    if not path.exists():
+        return
+
+    html = path.read_text(encoding="utf-8")
+    if GENERATED_L10N_SCRIPT_ID in html:
+        return
+
+    marker = "</body>"
+    if marker not in html:
+        return
+
+    html = html.replace(marker, f"  {GENERATED_L10N_SCRIPT}\n{marker}", 1)
     path.write_text(html, encoding="utf-8")
 
 
