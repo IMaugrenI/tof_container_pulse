@@ -136,7 +136,7 @@ def _check_url(check, config):
             "Externe URL-Checks sind standardmäßig deaktiviert. Setze allow_external true für diesen Check, wenn das beabsichtigt ist.",
         )
 
-    request = urllib.request.Request(url, method="GET", headers={"User-Agent": "StoragePulse-Services/1.0"})
+    request = urllib.request.Request(url, method="GET", headers={"User-Agent": "ServicesPulse/1.0"})
     start = time.monotonic()
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -230,10 +230,11 @@ def _check_tcp(check, config):
 
 def _check_heartbeat(check, config):
     name = str(check.get("name") or "Heartbeat file")
-    path = Path(str(check.get("path") or ""))
+    raw_path = str(check.get("path") or "").strip()
     max_age_seconds = float(check.get("max_age_seconds", 300))
-    if not str(path):
+    if not raw_path:
         return _entry_unknown(name, "heartbeat", "-", "No heartbeat file path configured.", "Kein Heartbeat-Dateipfad konfiguriert.")
+    path = Path(raw_path)
     if not path.exists():
         return ServiceEntry(
             name=name,
