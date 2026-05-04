@@ -272,10 +272,34 @@ def _sensor_row(name, value, state, note):
     )
 
 
+def _short_source(source: str) -> str:
+    if source.startswith("/sys/class/"):
+        return source.removeprefix("/sys/class/")
+    return source
+
+
 def _sensor_to_row(sensor: HardwareSensor):
-    note = f"{sensor.note} Source: {sensor.source}."
+    note = f"{sensor.note} Source: {_short_source(sensor.source)}."
     name = f"{sensor.name} ({sensor.category})"
     return _sensor_row(name, sensor.value, sensor.state, note)
+
+
+def _sensor_summary(sensors: list[HardwareSensor]) -> str:
+    counts = {"ok": 0, "warn": 0, "critical": 0, "unknown": 0}
+    categories: dict[str, int] = {}
+    for sensor in sensors:
+        counts[sensor.state] = counts.get(sensor.state, 0) + 1
+        categories[sensor.category] = categories.get(sensor.category, 0) + 1
+
+    category_text = ", ".join(f"{name}: {count}" for name, count in sorted(categories.items())) or "none"
+    return (
+        '<div class="messages" aria-label="Sensor summary">'
+        f"<p><strong>Sensor summary</strong>: {len(sensors)} found · "
+        f"OK {counts.get('ok', 0)} · WARN {counts.get('warn', 0)} · "
+        f"CRITICAL {counts.get('critical', 0)} · UNKNOWN {counts.get('unknown', 0)}</p>"
+        f"<p>Categories: {html.escape(category_text)}</p>"
+        "</div>"
+    )
 
 
 def _recommendation(overall):
@@ -315,14 +339,24 @@ def _replace_empty_sensor_section(html_text, sensor_rows):
     return html_text[:start] + _optional_sensor_notice() + "\n\n" + html_text[end:]
 
 
+def _insert_sensor_summary(html_text, sensor_rows, sensor_summary):
+    if not sensor_rows or not sensor_summary:
+        return html_text
+    marker = '        <section class="table-shell" aria-label="Sensor details">'
+    if marker not in html_text:
+        return html_text
+    return html_text.replace(marker, f"        {sensor_summary}\n{marker}", 1)
+
+
 def _collect_sensor_rows(config):
     try:
         sensors = collect_hardware_sensors(config)
     except Exception:
-        return [], []
+        return [], [], ""
     rows = [_sensor_to_row(sensor) for sensor in sensors]
     levels = [sensor.state for sensor in sensors]
-    return rows, levels
+    summary = _sensor_summary(sensors) if sensors else ""
+    return rows, levels, summary
 
 
 def _collect_snapshot(config):
@@ -334,7 +368,7 @@ def _collect_snapshot(config):
     inode_used, inode_total, inode_percent = _collect_inode_usage("/")
     uptime_seconds = _collect_uptime_seconds()
     load_average = _collect_load_average()
-    sensor_rows, sensor_levels = _collect_sensor_rows(config)
+    sensor_rows, sensor_levels, sensor_summary = _collect_sensor_rows(config)
 
     load_text = "-"
     load_percent = None
@@ -378,12 +412,14 @@ def _collect_snapshot(config):
             _metric_bar("Uptime", _format_uptime(uptime_seconds), None, levels["uptime"]),
         ],
         "sensors": sensor_rows,
+        "sensor_summary": sensor_summary,
     }
 
 
 def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, snapshot, messages):
     template = Path(template_path).read_text(encoding="utf-8")
     sensor_rows = snapshot.get("sensors", [])
+    sensor_summary = snapshot.get("sensor_summary", "")
     replacements = {
         "{{TITLE}}": "HARDWARE PULSE",
         "{{REFRESH_SECONDS}}": str(int(refresh_seconds)),
@@ -402,6 +438,7 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = template
     for key, value in replacements.items():
         html_text = html_text.replace(key, value)
+    html_text = _insert_sensor_summary(html_text, sensor_rows, sensor_summary)
     html_text = _replace_empty_sensor_section(html_text, sensor_rows)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
@@ -444,6 +481,7 @@ def generate_hardware_pulse(
             ],
             "metrics": [],
             "sensors": [],
+            "sensor_summary": "",
         }
         _render_html(
             template_path=template_path,
