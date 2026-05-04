@@ -9,6 +9,7 @@ from pulse import generate_pulse
 from ui_overrides import (
     apply_active_ports_navigation,
     apply_container_suite_navigation,
+    apply_generated_l10n,
     apply_soft_light_mode_overrides,
 )
 
@@ -51,6 +52,9 @@ def generate_suite(args) -> None:
     apply_soft_light_mode_overrides(args.ports_output)
     apply_container_suite_navigation(args.output)
     apply_active_ports_navigation(args.hardware_output)
+    apply_generated_l10n(args.output)
+    apply_generated_l10n(args.hardware_output)
+    apply_generated_l10n(args.ports_output)
 
 
 def main() -> int:
