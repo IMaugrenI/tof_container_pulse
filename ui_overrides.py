@@ -24,6 +24,8 @@ SOFT_LIGHT_STYLE = f"""
     --code-text: #18314a;
     --muted: #53677c;
     --muted-2: #718294;
+    --teal: #0f766e;
+    --cyan: #0b6b8f;
     --shadow: rgba(15, 23, 42, 0.18);
     --grid-line: rgba(54, 86, 111, 0.055);
     --hero-line-a: rgba(54, 86, 111, 0.18);
@@ -31,6 +33,11 @@ SOFT_LIGHT_STYLE = f"""
     --glow-a: rgba(20, 184, 166, 0.13);
     --glow-b: rgba(37, 99, 235, 0.10);
     --glow-c: rgba(20, 184, 166, 0.08);
+  }}
+
+  body.light .pulse-word {{
+    color: #0f766e;
+    text-shadow: none;
   }}
 
   body.light .panel,
