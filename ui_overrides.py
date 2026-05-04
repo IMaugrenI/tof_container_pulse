@@ -143,7 +143,7 @@ CONTAINER_NAV_HTML = f"""
           <a class=\"nav-link\" href=\"ports.html\"><span data-l10n-en=\"Ports\" data-l10n-de=\"Ports\">Ports</span></a>
           <a class=\"nav-link\" href=\"storage.html\"><span data-l10n-en=\"Storage\" data-l10n-de=\"Speicher\">Storage</span></a>
           <a class=\"nav-link\" href=\"services.html\"><span data-l10n-en=\"Services\" data-l10n-de=\"Dienste\">Services</span></a>
-          <span class=\"nav-link disabled\"><span data-l10n-en=\"Security\" data-l10n-de=\"Sicherheit\">Security</span></span>
+          <a class=\"nav-link\" href=\"security.html\"><span data-l10n-en=\"Security\" data-l10n-de=\"Sicherheit\">Security</span></a>
         </nav>
 """.rstrip()
 
@@ -251,5 +251,24 @@ def apply_active_services_navigation(output_path: str) -> None:
     html = html.replace(
         '<span class="nav-link disabled" data-i18n="navServices">Dienste</span>',
         '<a class="nav-link" href="services.html" data-i18n="navServices">Dienste</a>',
+    )
+    path.write_text(html, encoding="utf-8")
+
+
+def apply_active_security_navigation(output_path: str) -> None:
+    """Make the Security navigation item clickable on generated active pages."""
+
+    path = Path(output_path)
+    if not path.exists():
+        return
+
+    html = path.read_text(encoding="utf-8")
+    html = html.replace(
+        '<span class="nav-link disabled" data-i18n="navSecurity">Security</span>',
+        '<a class="nav-link" href="security.html" data-i18n="navSecurity">Security</a>',
+    )
+    html = html.replace(
+        '<span class="nav-link disabled" data-i18n="navSecurity">Sicherheit</span>',
+        '<a class="nav-link" href="security.html" data-i18n="navSecurity">Sicherheit</a>',
     )
     path.write_text(html, encoding="utf-8")
