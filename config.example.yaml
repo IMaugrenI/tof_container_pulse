@@ -42,6 +42,11 @@ hardware_sensor_command_timeout_seconds: 1.5
 hardware_vram_warn_percent: 80
 hardware_vram_critical_percent: 95
 
+# Port Pulse local inspection
+# Port Pulse uses local read-only tools such as ss or netstat.
+# It does not run external scans and does not change firewall rules.
+port_command_timeout_seconds: 2
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
