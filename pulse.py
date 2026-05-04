@@ -6,6 +6,8 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from i18n_static import l10n_text
+
 DEFAULT_CONFIG = {
     "refresh_seconds": 60,
     "cpu_warn_percent": 50.0,
@@ -57,6 +59,18 @@ def _state(status: str) -> str:
     if "exited" in lowered:
         return "exited"
     return "unknown"
+
+
+def _state_label(state):
+    labels = {
+        "running": ("running", "läuft"),
+        "restarting": ("restarting", "startet neu"),
+        "paused": ("paused", "pausiert"),
+        "dead": ("dead", "tot"),
+        "exited": ("exited", "beendet"),
+        "unknown": ("unknown", "unbekannt"),
+    }
+    return l10n_text(*labels.get(state, (state, state)))
 
 
 def _percent(value: str):
@@ -189,7 +203,7 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{WARN}}", str(int(counts.get("warn", 0))))
     html_text = html_text.replace("{{CRITICAL}}", str(int(counts.get("critical", 0))))
     html_text = html_text.replace("{{UNKNOWN}}", str(int(counts.get("unknown", 0))))
-    html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No refresh warnings.</p>")
+    html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{item}</p>" for item in messages) or f"<p>{l10n_text('No refresh warnings.', 'Keine Aktualisierungswarnungen.')}</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
     Path(output_path).write_text(html_text, encoding="utf-8")
 
@@ -219,7 +233,7 @@ def _docker_base_command(docker_cli, docker_context):
     return command
 
 
-def _render_row_html(host_name, name, severity, status, state, cpu_text, cpu_value, mem_usage, mem_perc, mem_perc_value, image, running_for, note):
+def _render_row_html(host_name, name, severity, status, state, cpu_text, cpu_value, mem_usage, mem_perc, mem_perc_value, image, running_for, note_html):
     cpu_html = _render_metric_html(cpu_text, cpu_value)
     mem_perc_html = _render_metric_html(mem_perc, mem_perc_value)
     return (
@@ -228,13 +242,13 @@ def _render_row_html(host_name, name, severity, status, state, cpu_text, cpu_val
         f"<td><code>{html.escape(name)}</code></td>"
         f"<td><span class='sev-badge sev-{severity}'>{html.escape(severity.upper())}</span></td>"
         f"<td>{html.escape(status)}</td>"
-        f"<td>{html.escape(state)}</td>"
+        f"<td>{_state_label(state)}</td>"
         f"<td>{cpu_html}</td>"
         f"<td>{html.escape(mem_usage)}</td>"
         f"<td>{mem_perc_html}</td>"
         f"<td><code>{html.escape(image)}</code></td>"
         f"<td>{html.escape(running_for)}</td>"
-        f"<td>{html.escape(note)}</td>"
+        f"<td>{note_html}</td>"
         "</tr>"
     )
 
@@ -263,9 +277,10 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                 if name:
                     stats_lookup[name] = row
         else:
-            messages.append(f"Host {host_name}: live stats unavailable: {stats.stderr.strip() or 'unknown error'}")
+            error = stats.stderr.strip() or "unknown error"
+            messages.append(l10n_text(f"Host {host_name}: live stats unavailable: {error}", f"Host {host_name}: Live-Statistiken nicht verfügbar: {error}"))
     except Exception:
-        messages.append(f"Host {host_name}: live stats unavailable.")
+        messages.append(l10n_text(f"Host {host_name}: live stats unavailable.", f"Host {host_name}: Live-Statistiken nicht verfügbar."))
 
     for row in _json_lines(ps.stdout):
         counts["total"] += 1
@@ -290,25 +305,28 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
         cpu_text = "-" if cpu_value is None else f"{cpu_value:.1f}%"
 
         severity = "ok"
-        note = "-"
+        note_html = l10n_text("No action needed.", "Keine Aktion nötig.")
         if state != "running":
             severity = "critical"
             counts["critical"] += 1
-            note = f"state is {state}"
+            note_html = l10n_text(f"Container state is {state}.", f"Container-Zustand ist {state}.")
         elif not stats_row:
             severity = "unknown"
             counts["unknown"] += 1
-            note = "no live stats"
+            note_html = l10n_text("No live stats available.", "Keine Live-Statistiken verfügbar.")
         else:
-            reasons = []
+            reasons_en = []
+            reasons_de = []
             if cpu_value is not None and cpu_value > cpu_warn:
-                reasons.append(f"cpu>{cpu_warn:g}%")
+                reasons_en.append(f"CPU above {cpu_warn:g}%")
+                reasons_de.append(f"CPU über {cpu_warn:g}%")
             if mem_used_mb is not None and mem_used_mb > memory_warn:
-                reasons.append(f"memory>{memory_warn:g}MB")
-            if reasons:
+                reasons_en.append(f"memory above {memory_warn:g} MB")
+                reasons_de.append(f"Speicher über {memory_warn:g} MB")
+            if reasons_en:
                 severity = "warn"
                 counts["warn"] += 1
-                note = "; ".join(reasons)
+                note_html = l10n_text("; ".join(reasons_en), "; ".join(reasons_de))
 
         rendered_rows.append(
             (
@@ -328,7 +346,7 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                     mem_perc_value=mem_perc_value,
                     image=image,
                     running_for=running_for,
-                    note=note,
+                    note_html=note_html,
                 ),
             )
         )
@@ -371,7 +389,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 counts["critical"] += host_counts["critical"]
                 counts["unknown"] += host_counts["unknown"]
             except Exception as exc:
-                messages.append(f"Host {host_name}: refresh failed: {exc}")
+                messages.append(l10n_text(f"Host {host_name}: refresh failed: {exc}", f"Host {host_name}: Aktualisierung fehlgeschlagen: {exc}"))
 
         _render_html(
             template_path=template_path,
@@ -393,7 +411,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             previous_last_success=previous_last_success,
             refresh_seconds=config.get("refresh_seconds", 60),
             counts={"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0},
-            messages=[f"Refresh failed: {exc}"],
+            messages=[l10n_text(f"Refresh failed: {exc}", f"Aktualisierung fehlgeschlagen: {exc}")],
             rows_html=[],
         )
         return False
