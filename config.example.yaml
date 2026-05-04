@@ -18,6 +18,26 @@ hardware_inode_critical_percent: 90
 hardware_uptime_warn_days: 30
 hardware_uptime_critical_days: 60
 
+# Hardware Pulse generic sensor collection
+# Default sensor sources are cheap local Linux sysfs paths when available:
+# - /sys/class/hwmon
+# - /sys/class/thermal
+# Missing sensors are treated as unavailable, not as failures.
+hardware_enable_sensors: true
+hardware_sensor_max_rows: 32
+hardware_temperature_warn_celsius: 75
+hardware_temperature_critical_celsius: 90
+hardware_fan_min_warn_rpm: 400
+hardware_fan_min_critical_rpm: 100
+
+# Optional external GPU tooling.
+# Disabled by default to keep the normal path dependency-light.
+# When enabled, Hardware Pulse may use nvidia-smi if it exists.
+hardware_enable_gpu_tools: false
+hardware_sensor_command_timeout_seconds: 1.5
+hardware_vram_warn_percent: 80
+hardware_vram_critical_percent: 95
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
