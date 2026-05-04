@@ -27,6 +27,29 @@ EXPOSURE_SORT = {
     "unknown": 8,
 }
 
+KNOWN_PORTS = {
+    "22": "SSH remote login",
+    "53": "DNS name resolver",
+    "80": "HTTP web server",
+    "443": "HTTPS web server",
+    "631": "printing service",
+    "1900": "SSDP / device discovery",
+    "3000": "development web app",
+    "3306": "MySQL / MariaDB database",
+    "5000": "development API or local web app",
+    "5173": "Vite development web app",
+    "5353": "mDNS / Bonjour discovery",
+    "5432": "PostgreSQL database",
+    "6379": "Redis database/cache",
+    "8000": "development API or local web app",
+    "8080": "web app or development server",
+    "9090": "dashboard or metrics service",
+    "9100": "metrics exporter or printer-style service",
+    "11434": "local LLM API, often Ollama",
+    "27017": "MongoDB database",
+    "41641": "VPN/mesh port, often Tailscale/WireGuard-style",
+}
+
 
 @dataclass(frozen=True)
 class PortEntry:
@@ -147,16 +170,18 @@ def _parse_netstat_output(output, config):
 
 def _build_entry(protocol, state, bind_address, port, process, config):
     exposure, severity, note = _classify_bind(bind_address)
+    display_address = _display_address(bind_address)
+    base_note = _human_note(protocol, port, exposure, severity, note)
     entry = PortEntry(
         protocol=protocol,
         state=state,
         bind_address=bind_address,
-        display_address=_display_address(bind_address),
+        display_address=display_address,
         port=port,
         exposure=exposure,
         severity=severity,
         process=_short_process(process),
-        note=note,
+        note=base_note,
     )
     if _is_allowed(entry, config.get("port_allowed_listeners") or []):
         return PortEntry(
@@ -168,7 +193,7 @@ def _build_entry(protocol, state, bind_address, port, process, config):
             exposure="allowed",
             severity="ok",
             process=entry.process,
-            note="Matched configured allowed listener. Review config if this should no longer be expected.",
+            note="Allowed by your config. This listener is expected on this machine. If that changes, remove it from the allowlist.",
         )
     return entry
 
@@ -195,26 +220,26 @@ def _classify_bind(address):
     normalized = _normalize_address(address)
 
     if normalized.startswith("127.") or normalized in {"::1", "localhost"}:
-        return "local-only", "ok", "Bound to localhost only."
+        return "local-only", "ok", "Only apps on this device should reach it."
     if normalized in {"0.0.0.0", "::", "*", ""}:
-        return "all-interfaces", "warn", "Listening on all interfaces. Review whether this is intended."
+        return "all-interfaces", "warn", "This listens on every network interface. Firewall, router, or VPN settings decide who can actually reach it."
 
     ip_obj = _parse_ip(normalized)
     if ip_obj is None:
-        return "unknown", "unknown", "Bind address could not be classified. Review manually."
+        return "unknown", "unknown", "Port Pulse could not classify this bind address. Review it manually."
 
     if ip_obj.is_loopback:
-        return "local-only", "ok", "Bound to loopback only."
+        return "local-only", "ok", "Only apps on this device should reach it."
     if ip_obj.version == 4 and ip_obj in ipaddress.ip_network("100.64.0.0/10"):
-        return "cgnat-or-mesh", "warn", "Bound to CGNAT/mesh-style address. Review VPN or overlay exposure."
+        return "cgnat-or-mesh", "warn", "This looks like CGNAT, VPN, or mesh networking. It may be reachable through that network."
     if ip_obj.is_link_local:
-        return "ipv6-link-local" if ip_obj.version == 6 else "link-local", "warn", "Bound to link-local address. Review local-network exposure."
+        return "ipv6-link-local" if ip_obj.version == 6 else "link-local", "warn", "This is link-local. It normally stays inside the local network segment, but should still be understood."
     if ip_obj.version == 6 and ip_obj.is_private:
-        return "ipv6-unique-local", "warn", "Bound to private IPv6/ULA-style address. Review local-network exposure."
+        return "ipv6-unique-local", "warn", "This is private IPv6/ULA-style networking. It may be reachable inside a private or VPN network."
     if ip_obj.is_private:
-        return "private-lan", "warn", "Bound to private LAN address. Review whether LAN exposure is intended."
+        return "private-lan", "warn", "This is a private LAN address. Devices in the same network may be able to reach it."
 
-    return "specific-interface", "warn", "Bound to non-localhost interface. Review exposure."
+    return "specific-interface", "warn", "This is not localhost. It may be reachable from outside this device depending on your network."
 
 
 def _parse_ip(address):
@@ -230,6 +255,35 @@ def _display_address(address):
     if ip_obj is not None and ip_obj.version == 6:
         return ip_obj.compressed
     return address or "-"
+
+
+def _known_port_hint(protocol, port):
+    hint = KNOWN_PORTS.get(str(port))
+    if not hint:
+        return "unknown or app-specific service"
+    if str(port) == "41641" and protocol == "udp":
+        return "VPN/mesh port, often Tailscale/WireGuard-style"
+    return hint
+
+
+def _human_check_text(port, exposure, severity):
+    if severity == "ok":
+        return "Usually fine when you expected this app to run locally."
+    if exposure == "all-interfaces" and str(port) == "22":
+        return "If you do not use remote login to this machine, consider disabling SSH or binding it more narrowly."
+    if exposure == "all-interfaces":
+        return "Check whether this service should be reachable from other networks."
+    if exposure in {"private-lan", "cgnat-or-mesh", "ipv6-link-local", "ipv6-unique-local", "link-local"}:
+        return "Check whether this is expected for your LAN, VPN, or mesh setup."
+    if severity == "unknown":
+        return "If you do not recognize it, search the port number or inspect the owning process locally."
+    return "Review whether this listener is expected."
+
+
+def _human_note(protocol, port, exposure, severity, technical_note):
+    likely = _known_port_hint(protocol, port)
+    check = _human_check_text(port, exposure, severity)
+    return f"Likely: {likely}. Meaning: {technical_note} Check: {check}"
 
 
 def _is_allowed(entry, allowed_listeners):
@@ -350,7 +404,7 @@ def _entry_row(entry):
 
 def _recommendation(overall):
     if overall == "warn":
-        return "Review all-interface, LAN, mesh, and non-localhost listeners. Port Pulse does not change firewall or service settings."
+        return "Some ports may be reachable through your network, LAN, VPN, or mesh. Review the rows marked WARN. Port Pulse only explains; it does not change firewall or service settings."
     if overall == "unknown":
         return "No local port data was collected. Ensure `ss` or `netstat` is available if you want Port Pulse details."
     return "No review needed. Listening ports appear local-only or explicitly allowed."
@@ -377,7 +431,8 @@ def _review_summary(entries):
         f"<p><strong>Port summary</strong>: {counts['total']} listeners · "
         f"local {counts['local']} · all-interfaces {counts['all_interfaces']} · "
         f"LAN/mesh {counts['private_or_mesh']} · allowed {counts['allowed']} · review {counts['review']}</p>"
-        "<p>WARN means review exposure; it does not mean Port Pulse changed or blocked anything.</p>"
+        "<p><strong>Plain meaning</strong>: OK usually means only this device can reach it. WARN means another device, LAN, VPN, or mesh network might reach it. UNKNOWN means Port Pulse could not classify it safely.</p>"
+        "<p>Port Pulse only explains what is listening. It does not block, open, close, or change ports.</p>"
         "</section>"
     )
 
@@ -404,7 +459,7 @@ def _port_table(entries):
                 <th>Severity</th>
                 <th>Exposure</th>
                 <th>Process</th>
-                <th>Notes</th>
+                <th>Plain-English help</th>
               </tr>
             </thead>
             <tbody>
