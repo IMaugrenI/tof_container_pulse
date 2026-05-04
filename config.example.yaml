@@ -3,6 +3,14 @@ cpu_warn_percent: 50
 memory_warn_mb: 1024
 docker_timeout_seconds: 8
 
+# Cross-platform support
+# Pulse Suite now uses platform wrappers for Hardware, Ports, Storage, and Security.
+# Linux keeps the deep collectors that already exist.
+# macOS and Windows use calm read-only baseline adapters.
+# Optional psutil improves Hardware and Storage data on macOS/Windows when installed,
+# but the suite does not require it.
+# Unsupported platform details are shown as optional, unknown, or N/A instead of crashing.
+
 # Hardware Pulse basic thresholds
 # These checks are read-only and intentionally lightweight.
 hardware_cpu_warn_percent: 70
@@ -19,10 +27,11 @@ hardware_uptime_warn_days: 30
 hardware_uptime_critical_days: 60
 
 # Hardware Pulse generic sensor collection
-# Default sensor sources are cheap local Linux sysfs paths when available:
+# Linux deep sensors use cheap sysfs paths when available:
 # - /sys/class/hwmon
 # - /sys/class/thermal
-# Missing sensors are treated as unavailable, not as failures.
+# macOS/Windows currently show safe baseline host signals unless optional
+# adapters are added later. Missing sensors are treated as unavailable, not as failures.
 hardware_enable_sensors: true
 hardware_sensor_max_rows: 32
 hardware_temperature_warn_celsius: 75
@@ -43,13 +52,15 @@ hardware_vram_warn_percent: 80
 hardware_vram_critical_percent: 95
 
 # Port Pulse local inspection
-# Port Pulse uses local read-only tools such as ss or netstat.
-# It does not run external scans and does not change firewall rules.
+# Linux uses ss or netstat.
+# macOS uses netstat.
+# Windows uses PowerShell Get-NetTCPConnection first, then netstat fallback.
+# Port Pulse does not run external scans and does not change firewall rules.
 # Plain-language service hints are best-effort labels for humans, not proof.
 port_command_timeout_seconds: 2
 
 # Optional Port Pulse allowlist.
-# Matching entries are shown as OK/allowed.
+# Matching entries are shown as OK/allowed on Linux deep collector.
 # Use this for listeners that are expected on your host.
 # Empty by default because every machine is different.
 port_allowed_listeners: []
@@ -62,13 +73,14 @@ port_allowed_listeners: []
 #     port: 22
 
 # Storage Pulse local inspection
-# Storage Pulse reads local mount usage and inode usage.
-# It does not delete files, run cleanup, repair disks, or change mounts.
+# Linux uses mount/inode details and optional lsblk disk overview.
+# macOS and Windows use baseline volume usage. Inode details may show N/A.
+# Storage Pulse does not delete files, run cleanup, repair disks, or change mounts.
 # Virtual desktop helper mounts like /run/user/*/doc and /run/user/*/gvfs
-# are hidden from the normal overview because they are not real storage targets.
+# are hidden from the normal Linux overview because they are not real storage targets.
 # Filesystems without normal Linux inode reporting, such as vfat/EFI, show
 # inode values as N/A instead of creating an UNKNOWN storage warning.
-# The optional disk overview uses read-only lsblk output and intentionally does
+# The optional Linux disk overview uses read-only lsblk output and intentionally does
 # not show serial numbers, UUIDs, WWN, or model names to keep screenshots safer.
 storage_disk_warn_percent: 80
 storage_disk_critical_percent: 90
@@ -78,7 +90,8 @@ storage_max_mounts: 24
 storage_include_tmpfs: false
 
 # Services Pulse explicit checks
-# Services Pulse does not guess important services and does not scan.
+# Services Pulse is cross-platform by design.
+# It does not guess important services and does not scan.
 # You explicitly define what should be checked.
 # It does not restart, stop, modify, or repair services.
 service_check_timeout_seconds: 2
@@ -108,9 +121,14 @@ service_checks: []
 
 # Security Pulse local review
 # Security Pulse reads local visibility signals only.
+# Linux keeps the deeper v0.3 collector.
+# macOS baseline signals include SSH key hygiene, Docker CLI visibility,
+# application firewall visibility, FileVault visibility, and SIP visibility.
+# Windows baseline signals include SSH key hygiene, Docker CLI visibility,
+# Windows Firewall visibility, Defender visibility, and BitLocker visibility.
 # It does not change firewall rules, SSH settings, users, groups, services,
 # Fail2Ban state, Docker permissions, container settings, or system settings.
-# Some checks may show UNKNOWN when logs or tools are not readable without sudo.
+# Some checks may show UNKNOWN when logs or tools are not readable without sudo/admin rights.
 # Normal laptop/Desktop signals should stay calm: a Docker socket can be normal
 # on a Docker host, a few active terminal sessions can be normal, and missing
 # Fail2Ban can be normal when another protection layer is used.

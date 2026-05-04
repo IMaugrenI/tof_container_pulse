@@ -3,12 +3,12 @@ import time
 import webbrowser
 from pathlib import Path
 
-from hardware import generate_hardware_pulse
-from ports import generate_port_pulse
+from hardware_xplat import generate_hardware_pulse
+from ports_xplat import generate_port_pulse
 from pulse import generate_pulse
-from security_v3 import generate_security_pulse
+from security_xplat import generate_security_pulse
 from services import generate_services_pulse
-from storage import generate_storage_pulse
+from storage_xplat import generate_storage_pulse
 from ui_overrides import (
     apply_active_ports_navigation,
     apply_active_security_navigation,
@@ -29,10 +29,11 @@ def open_output_in_browser(output_path: str) -> None:
 
 
 def generate_suite(args) -> None:
-    """Generate the currently implemented static Pulse Suite pages.
+    """Generate the static Pulse Suite pages.
 
-    Keep this explicit and small. Each page generator is responsible for its
-    own bounded, read-only collection work.
+    Each page generator is responsible for bounded, read-only collection work.
+    Hardware, Ports, Storage, and Security use cross-platform wrappers that
+    keep the existing Linux collectors and add macOS/Windows fallback paths.
     """
 
     generate_pulse(
