@@ -5,6 +5,7 @@ language switching. They do not collect system data, call Docker, inspect
 hardware, scan ports, or perform host actions.
 """
 
+import html
 from pathlib import Path
 
 from platform_support import os_family, platform_label
@@ -206,11 +207,14 @@ def _collector_mode(page_key: str) -> tuple[str, str, str]:
 
 def _platform_badges_html(page_key: str) -> str:
     collector_en, collector_de, collector_kind = _collector_mode(page_key)
-    platform_text = platform_label()
+    platform_text = html.escape(platform_label())
+    safe_collector_en = html.escape(collector_en)
+    safe_collector_de = html.escape(collector_de)
+    safe_collector_kind = html.escape(collector_kind)
     return f"""
         <div class=\"platform-badges\" id=\"{PLATFORM_BADGE_MARKER}\" aria-label=\"Platform and collector mode\">
           <span class=\"platform-badge\"><span data-l10n-en=\"Platform\" data-l10n-de=\"Plattform\">Platform</span>: <strong>{platform_text}</strong></span>
-          <span class=\"platform-badge platform-badge-{collector_kind}\"><span data-l10n-en=\"Collector\" data-l10n-de=\"Collector\">Collector</span>: <strong data-l10n-en=\"{collector_en}\" data-l10n-de=\"{collector_de}\">{collector_en}</strong></span>
+          <span class=\"platform-badge platform-badge-{safe_collector_kind}\"><span data-l10n-en=\"Collector\" data-l10n-de=\"Collector\">Collector</span>: <strong data-l10n-en=\"{safe_collector_en}\" data-l10n-de=\"{safe_collector_de}\">{safe_collector_en}</strong></span>
           <span class=\"platform-badge platform-badge-readonly\"><span data-l10n-en=\"Mode\" data-l10n-de=\"Modus\">Mode</span>: <strong data-l10n-en=\"Read-only\" data-l10n-de=\"Nur lesend\">Read-only</strong></span>
         </div>
 """.rstrip()
@@ -223,13 +227,13 @@ def apply_soft_light_mode_overrides(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    if SOFT_LIGHT_STYLE_ID not in html:
+    html_text = path.read_text(encoding="utf-8")
+    if SOFT_LIGHT_STYLE_ID not in html_text:
         marker = "</head>"
-        if marker in html:
-            html = html.replace(marker, f"  {SOFT_LIGHT_STYLE}\n{marker}", 1)
+        if marker in html_text:
+            html_text = html_text.replace(marker, f"  {SOFT_LIGHT_STYLE}\n{marker}", 1)
 
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_platform_badges(output_path: str, page_key: str) -> None:
@@ -239,18 +243,18 @@ def apply_platform_badges(output_path: str, page_key: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    if PLATFORM_BADGE_STYLE_ID not in html:
+    html_text = path.read_text(encoding="utf-8")
+    if PLATFORM_BADGE_STYLE_ID not in html_text:
         marker = "</head>"
-        if marker in html:
-            html = html.replace(marker, f"  {PLATFORM_BADGE_STYLE}\n{marker}", 1)
+        if marker in html_text:
+            html_text = html_text.replace(marker, f"  {PLATFORM_BADGE_STYLE}\n{marker}", 1)
 
-    if PLATFORM_BADGE_MARKER not in html:
+    if PLATFORM_BADGE_MARKER not in html_text:
         nav_end = "        </nav>"
-        if nav_end in html:
-            html = html.replace(nav_end, f"{nav_end}\n{_platform_badges_html(page_key)}", 1)
+        if nav_end in html_text:
+            html_text = html_text.replace(nav_end, f"{nav_end}\n{_platform_badges_html(page_key)}", 1)
 
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_generated_l10n(output_path: str) -> None:
@@ -260,16 +264,16 @@ def apply_generated_l10n(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    if GENERATED_L10N_SCRIPT_ID in html:
+    html_text = path.read_text(encoding="utf-8")
+    if GENERATED_L10N_SCRIPT_ID in html_text:
         return
 
     marker = "</body>"
-    if marker not in html:
+    if marker not in html_text:
         return
 
-    html = html.replace(marker, f"  {GENERATED_L10N_SCRIPT}\n{marker}", 1)
-    path.write_text(html, encoding="utf-8")
+    html_text = html_text.replace(marker, f"  {GENERATED_L10N_SCRIPT}\n{marker}", 1)
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_container_suite_navigation(output_path: str) -> None:
@@ -279,16 +283,16 @@ def apply_container_suite_navigation(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    if CONTAINER_NAV_MARKER in html:
+    html_text = path.read_text(encoding="utf-8")
+    if CONTAINER_NAV_MARKER in html_text:
         return
 
     anchor = '        <span class="pill"><span class="dot"></span> <span data-i18n="oneGlance">'
-    if anchor not in html:
+    if anchor not in html_text:
         return
 
-    html = html.replace(anchor, f"{CONTAINER_NAV_HTML}\n{anchor}", 1)
-    path.write_text(html, encoding="utf-8")
+    html_text = html_text.replace(anchor, f"{CONTAINER_NAV_HTML}\n{anchor}", 1)
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_active_ports_navigation(output_path: str) -> None:
@@ -298,12 +302,12 @@ def apply_active_ports_navigation(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    html = html.replace(
+    html_text = path.read_text(encoding="utf-8")
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navPorts">Ports</span>',
         '<a class="nav-link" href="ports.html" data-i18n="navPorts">Ports</a>',
     )
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_active_storage_navigation(output_path: str) -> None:
@@ -313,16 +317,16 @@ def apply_active_storage_navigation(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    html = html.replace(
+    html_text = path.read_text(encoding="utf-8")
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navStorage">Storage</span>',
         '<a class="nav-link" href="storage.html" data-i18n="navStorage">Storage</a>',
     )
-    html = html.replace(
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navStorage">Speicher</span>',
         '<a class="nav-link" href="storage.html" data-i18n="navStorage">Speicher</a>',
     )
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_active_services_navigation(output_path: str) -> None:
@@ -332,16 +336,16 @@ def apply_active_services_navigation(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    html = html.replace(
+    html_text = path.read_text(encoding="utf-8")
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navServices">Services</span>',
         '<a class="nav-link" href="services.html" data-i18n="navServices">Services</a>',
     )
-    html = html.replace(
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navServices">Dienste</span>',
         '<a class="nav-link" href="services.html" data-i18n="navServices">Dienste</a>',
     )
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
 
 
 def apply_active_security_navigation(output_path: str) -> None:
@@ -351,13 +355,13 @@ def apply_active_security_navigation(output_path: str) -> None:
     if not path.exists():
         return
 
-    html = path.read_text(encoding="utf-8")
-    html = html.replace(
+    html_text = path.read_text(encoding="utf-8")
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navSecurity">Security</span>',
         '<a class="nav-link" href="security.html" data-i18n="navSecurity">Security</a>',
     )
-    html = html.replace(
+    html_text = html_text.replace(
         '<span class="nav-link disabled" data-i18n="navSecurity">Sicherheit</span>',
         '<a class="nav-link" href="security.html" data-i18n="navSecurity">Sicherheit</a>',
     )
-    path.write_text(html, encoding="utf-8")
+    path.write_text(html_text, encoding="utf-8")
