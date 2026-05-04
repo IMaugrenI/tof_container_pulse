@@ -68,6 +68,8 @@ port_allowed_listeners: []
 # are hidden from the normal overview because they are not real storage targets.
 # Filesystems without normal Linux inode reporting, such as vfat/EFI, show
 # inode values as N/A instead of creating an UNKNOWN storage warning.
+# The optional disk overview uses read-only lsblk output and intentionally does
+# not show serial numbers, UUIDs, WWN, or model names to keep screenshots safer.
 storage_disk_warn_percent: 80
 storage_disk_critical_percent: 90
 storage_inode_warn_percent: 80
