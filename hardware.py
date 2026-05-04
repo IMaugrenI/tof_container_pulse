@@ -8,6 +8,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from hardware_sensors import DEFAULT_SENSOR_CONFIG, HardwareSensor, collect_hardware_sensors
+
 DEFAULT_HARDWARE_CONFIG = {
     "refresh_seconds": 60,
     "hardware_cpu_warn_percent": 70.0,
@@ -22,6 +24,7 @@ DEFAULT_HARDWARE_CONFIG = {
     "hardware_inode_critical_percent": 90.0,
     "hardware_uptime_warn_days": 30.0,
     "hardware_uptime_critical_days": 60.0,
+    **DEFAULT_SENSOR_CONFIG,
 }
 
 SEVERITY_RANK = {"ok": 0, "unknown": 1, "warn": 2, "critical": 3}
@@ -269,14 +272,20 @@ def _sensor_row(name, value, state, note):
     )
 
 
+def _sensor_to_row(sensor: HardwareSensor):
+    note = f"{sensor.note} Source: {sensor.source}."
+    name = f"{sensor.name} ({sensor.category})"
+    return _sensor_row(name, sensor.value, sensor.state, note)
+
+
 def _recommendation(overall):
     if overall == "critical":
-        return "Immediate inspection recommended. Check CPU pressure, memory pressure, disk usage, inode usage, and host stability."
+        return "Immediate inspection recommended. Check CPU pressure, memory pressure, disk usage, inode usage, sensors, and host stability."
     if overall == "warn":
-        return "Review host pressure and plan maintenance if the warning persists. No automatic action is executed."
+        return "Review host pressure and sensor warnings. Plan maintenance if the warning persists. No automatic action is executed."
     if overall == "unknown":
         return "Some host signals are unavailable on this platform. Review unavailable rows if needed."
-    return "No action needed. Basic host signals look healthy."
+    return "No action needed. Basic host and sensor signals look healthy."
 
 
 def _optional_sensor_notice():
@@ -286,8 +295,8 @@ def _optional_sensor_notice():
           <h2 data-i18n="sensorOverview">Optional Sensors</h2>
           <span class="pill" data-i18n="optionalLater">Optional deep-dive later</span>
         </div>
-        <p class="recommendation"><strong>Sensor status</strong>: No live sensor values were exposed by this host during this basic run.</p>
-        <p class="recommendation">Temperature, fan RPM, GPU, and VRAM checks are planned as optional host-specific checks.</p>
+        <p class="recommendation"><strong>Sensor status</strong>: No live sensor values were exposed by this host during this run, or sensor collection is disabled.</p>
+        <p class="recommendation">Hardware Pulse can render generic sensor rows for temperature, fan RPM, GPU, VRAM, and future sensor adapters when values are available.</p>
       </section>
 """.rstrip()
 
@@ -306,6 +315,16 @@ def _replace_empty_sensor_section(html_text, sensor_rows):
     return html_text[:start] + _optional_sensor_notice() + "\n\n" + html_text[end:]
 
 
+def _collect_sensor_rows(config):
+    try:
+        sensors = collect_hardware_sensors(config)
+    except Exception:
+        return [], []
+    rows = [_sensor_to_row(sensor) for sensor in sensors]
+    levels = [sensor.state for sensor in sensors]
+    return rows, levels
+
+
 def _collect_snapshot(config):
     cpu_percent = _collect_cpu_percent()
     meminfo = _read_meminfo()
@@ -315,6 +334,7 @@ def _collect_snapshot(config):
     inode_used, inode_total, inode_percent = _collect_inode_usage("/")
     uptime_seconds = _collect_uptime_seconds()
     load_average = _collect_load_average()
+    sensor_rows, sensor_levels = _collect_sensor_rows(config)
 
     load_text = "-"
     load_percent = None
@@ -334,7 +354,7 @@ def _collect_snapshot(config):
         "uptime": _level_uptime(uptime_seconds, config["hardware_uptime_warn_days"], config["hardware_uptime_critical_days"]),
         "load": load_level,
     }
-    overall = _overall(list(levels.values()))
+    overall = _overall([*levels.values(), *sensor_levels])
 
     return {
         "hostname": socket.gethostname(),
@@ -357,7 +377,7 @@ def _collect_snapshot(config):
             _metric_bar("Root Inodes", f"{_format_percent(inode_percent)} / {_format_count(inode_used)} used", inode_percent, levels["inodes"]),
             _metric_bar("Uptime", _format_uptime(uptime_seconds), None, levels["uptime"]),
         ],
-        "sensors": [],
+        "sensors": sensor_rows,
     }
 
 
