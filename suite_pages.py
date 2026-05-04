@@ -40,15 +40,15 @@ PULSE_PAGES: tuple[PulsePage, ...] = (
         output_path="hardware.html",
         collector_module="hardware",
         status="active",
-        summary="Host RAM, swap, load, uptime, disk summary, and optional sensor placeholders.",
+        summary="Host CPU, RAM, swap, load, uptime, disk, inodes, and generic sensors.",
     ),
     PulsePage(
         key="ports",
         title="Port Pulse",
         output_path="ports.html",
         collector_module="ports",
-        status="planned",
-        summary="Local listening ports, bind addresses, Docker-published ports, and exposure status.",
+        status="active",
+        summary="Local listening ports, bind addresses, and local exposure status.",
     ),
     PulsePage(
         key="storage",
