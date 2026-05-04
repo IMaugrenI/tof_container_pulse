@@ -2,7 +2,7 @@
 
 This module intentionally has no runtime side effects.
 It does not collect system data, call Docker, inspect hardware, scan ports,
-inspect storage, inspect services, or write files.
+inspect storage, inspect services, inspect security signals, or write files.
 
 The registry is a small planning primitive for the multi-page Pulse Suite.
 Future collectors and templates can import it without triggering expensive work.
@@ -71,8 +71,8 @@ PULSE_PAGES: tuple[PulsePage, ...] = (
         title="Security Pulse",
         output_path="security.html",
         collector_module="security",
-        status="planned",
-        summary="SSH/fail2ban signals, Docker operational hygiene, config drift, and advisory-only safety checks.",
+        status="active",
+        summary="Local security signals, login/session hints, Fail2Ban visibility, and Docker socket review hints.",
     ),
 )
 
