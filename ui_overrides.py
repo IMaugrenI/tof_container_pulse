@@ -8,6 +8,7 @@ host actions.
 from pathlib import Path
 
 SOFT_LIGHT_STYLE_ID = "tof-soft-light-mode-overrides"
+CONTAINER_NAV_MARKER = "tof-container-suite-navigation"
 
 SOFT_LIGHT_STYLE = f"""
 <style id=\"{SOFT_LIGHT_STYLE_ID}\">
@@ -40,6 +41,52 @@ SOFT_LIGHT_STYLE = f"""
     text-shadow: none;
   }}
 
+  .nav-strip {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }}
+
+  .nav-link {{
+    appearance: none;
+    border: 1px solid var(--panel-line);
+    border-radius: 999px;
+    padding: 7px 11px;
+    min-height: 32px;
+    color: var(--text);
+    background: var(--panel-soft);
+    box-shadow: inset 0 0 18px rgba(255,255,255,0.03);
+    white-space: nowrap;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+  }}
+
+  .nav-link:hover {{
+    border-color: rgba(54, 243, 211, 0.42);
+    transform: translateY(-1px);
+  }}
+
+  .nav-link.active {{
+    border-color: rgba(54, 243, 211, 0.58);
+    color: var(--teal);
+  }}
+
+  .nav-link.disabled {{
+    cursor: default;
+    opacity: 0.52;
+  }}
+
+  .nav-link.disabled:hover {{
+    transform: none;
+    border-color: var(--panel-line);
+  }}
+
   body.light .panel,
   body.light .health-panel,
   body.light .messages,
@@ -58,6 +105,17 @@ SOFT_LIGHT_STYLE = f"""
 </style>
 """.strip()
 
+CONTAINER_NAV_HTML = f"""
+        <nav class=\"nav-strip\" id=\"{CONTAINER_NAV_MARKER}\" aria-label=\"Pulse Suite navigation\">
+          <a class=\"nav-link active\" href=\"pulse.html\">Container</a>
+          <a class=\"nav-link\" href=\"hardware.html\">Hardware</a>
+          <span class=\"nav-link disabled\">Ports</span>
+          <span class=\"nav-link disabled\">Storage</span>
+          <span class=\"nav-link disabled\">Services</span>
+          <span class=\"nav-link disabled\">Security</span>
+        </nav>
+""".rstrip()
+
 
 def apply_soft_light_mode_overrides(output_path: str) -> None:
     """Inject softer light-mode CSS into a generated static HTML file."""
@@ -67,12 +125,33 @@ def apply_soft_light_mode_overrides(output_path: str) -> None:
         return
 
     html = path.read_text(encoding="utf-8")
-    if SOFT_LIGHT_STYLE_ID in html:
+    if SOFT_LIGHT_STYLE_ID not in html:
+        marker = "</head>"
+        if marker in html:
+            html = html.replace(marker, f"  {SOFT_LIGHT_STYLE}\n{marker}", 1)
+
+    path.write_text(html, encoding="utf-8")
+
+
+def apply_container_suite_navigation(output_path: str) -> None:
+    """Add Pulse Suite navigation to generated Container Pulse output.
+
+    Hardware Pulse already has native suite navigation in its template. This
+    helper only patches the generated Container Pulse HTML so both active pages
+    share the same page-jump affordance without rewriting the large template.
+    """
+
+    path = Path(output_path)
+    if not path.exists():
         return
 
-    marker = "</head>"
-    if marker not in html:
+    html = path.read_text(encoding="utf-8")
+    if CONTAINER_NAV_MARKER in html:
         return
 
-    html = html.replace(marker, f"  {SOFT_LIGHT_STYLE}\n{marker}", 1)
+    anchor = '        <span class="pill"><span class="dot"></span> <span data-i18n="oneGlance">'
+    if anchor not in html:
+        return
+
+    html = html.replace(anchor, f"{CONTAINER_NAV_HTML}\n{anchor}", 1)
     path.write_text(html, encoding="utf-8")
