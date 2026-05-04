@@ -31,8 +31,8 @@ jobs:
       - name: Compile all Python sources
         run: python -m compileall -q .
 
-      - name: Collect tests (if any)
-        run: pytest --collect-only -q || true
+      - name: Run unit tests
+        run: pytest
 
   docker-build:
     name: Docker image build
