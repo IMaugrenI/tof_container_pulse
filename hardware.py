@@ -279,6 +279,33 @@ def _recommendation(overall):
     return "No action needed. Basic host signals look healthy."
 
 
+def _optional_sensor_notice():
+    return """
+      <section class="health-panel" aria-label="Optional sensors">
+        <div class="health-head">
+          <h2 data-i18n="sensorOverview">Optional Sensors</h2>
+          <span class="pill" data-i18n="optionalLater">Optional deep-dive later</span>
+        </div>
+        <p class="recommendation"><strong>Sensor status</strong>: No live sensor values were exposed by this host during this basic run.</p>
+        <p class="recommendation">Temperature, fan RPM, GPU, and VRAM checks are planned as optional host-specific checks.</p>
+      </section>
+""".rstrip()
+
+
+def _replace_empty_sensor_section(html_text, sensor_rows):
+    if sensor_rows:
+        return html_text
+
+    start_marker = '      <section class="health-panel" aria-label="Optional sensors">'
+    end_marker = '      <p class="footer-note"'
+    start = html_text.find(start_marker)
+    end = html_text.find(end_marker, start)
+    if start == -1 or end == -1:
+        return html_text
+
+    return html_text[:start] + _optional_sensor_notice() + "\n\n" + html_text[end:]
+
+
 def _collect_snapshot(config):
     cpu_percent = _collect_cpu_percent()
     meminfo = _read_meminfo()
@@ -330,16 +357,13 @@ def _collect_snapshot(config):
             _metric_bar("Root Inodes", f"{_format_percent(inode_percent)} / {_format_count(inode_used)} used", inode_percent, levels["inodes"]),
             _metric_bar("Uptime", _format_uptime(uptime_seconds), None, levels["uptime"]),
         ],
-        "sensors": [
-            _sensor_row("Temperature", "unavailable", "unknown", "Optional sensor checks are planned for a later version."),
-            _sensor_row("Fan RPM", "unavailable", "unknown", "Fan checks are planned as optional host-specific checks."),
-            _sensor_row("GPU / VRAM", "unavailable", "unknown", "GPU checks are planned as optional vendor-specific checks."),
-        ],
+        "sensors": [],
     }
 
 
 def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, snapshot, messages):
     template = Path(template_path).read_text(encoding="utf-8")
+    sensor_rows = snapshot.get("sensors", [])
     replacements = {
         "{{TITLE}}": "HARDWARE PULSE",
         "{{REFRESH_SECONDS}}": str(int(refresh_seconds)),
@@ -352,12 +376,13 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
         "{{RECOMMENDATION}}": html.escape(snapshot.get("recommendation", "No recommendation available.")),
         "{{SUMMARY_CARDS}}": "\n".join(snapshot.get("summary_cards", [])),
         "{{METRIC_ROWS}}": "\n".join(snapshot.get("metrics", [])),
-        "{{SENSOR_ROWS}}": "\n".join(snapshot.get("sensors", [])),
+        "{{SENSOR_ROWS}}": "\n".join(sensor_rows),
         "{{MESSAGES}}": "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No hardware refresh warnings.</p>",
     }
     html_text = template
     for key, value in replacements.items():
         html_text = html_text.replace(key, value)
+    html_text = _replace_empty_sensor_section(html_text, sensor_rows)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
 
