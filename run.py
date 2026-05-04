@@ -5,7 +5,7 @@ from pathlib import Path
 
 from hardware import generate_hardware_pulse
 from pulse import generate_pulse
-from ui_overrides import apply_soft_light_mode_overrides
+from ui_overrides import apply_container_suite_navigation, apply_soft_light_mode_overrides
 
 
 def open_output_in_browser(output_path: str) -> None:
@@ -37,6 +37,7 @@ def generate_suite(args) -> None:
     )
     apply_soft_light_mode_overrides(args.output)
     apply_soft_light_mode_overrides(args.hardware_output)
+    apply_container_suite_navigation(args.output)
 
 
 def main() -> int:
