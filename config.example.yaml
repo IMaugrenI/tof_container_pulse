@@ -61,6 +61,16 @@ port_allowed_listeners: []
 #     exposure: private-lan
 #     port: 22
 
+# Storage Pulse local inspection
+# Storage Pulse reads local mount usage and inode usage.
+# It does not delete files, run cleanup, repair disks, or change mounts.
+storage_disk_warn_percent: 80
+storage_disk_critical_percent: 90
+storage_inode_warn_percent: 80
+storage_inode_critical_percent: 90
+storage_max_mounts: 24
+storage_include_tmpfs: false
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
