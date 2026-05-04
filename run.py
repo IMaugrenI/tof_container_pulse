@@ -16,6 +16,7 @@ from ui_overrides import (
     apply_active_storage_navigation,
     apply_container_suite_navigation,
     apply_generated_l10n,
+    apply_platform_badges,
     apply_soft_light_mode_overrides,
 )
 
@@ -92,6 +93,12 @@ def generate_suite(args) -> None:
     apply_active_security_navigation(args.ports_output)
     apply_active_security_navigation(args.storage_output)
     apply_active_security_navigation(args.services_output)
+    apply_platform_badges(args.output, "container")
+    apply_platform_badges(args.hardware_output, "hardware")
+    apply_platform_badges(args.ports_output, "ports")
+    apply_platform_badges(args.storage_output, "storage")
+    apply_platform_badges(args.services_output, "services")
+    apply_platform_badges(args.security_output, "security")
     apply_generated_l10n(args.output)
     apply_generated_l10n(args.hardware_output)
     apply_generated_l10n(args.ports_output)
