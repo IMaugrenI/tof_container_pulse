@@ -142,7 +142,7 @@ CONTAINER_NAV_HTML = f"""
           <a class=\"nav-link\" href=\"hardware.html\"><span data-l10n-en=\"Hardware\" data-l10n-de=\"Hardware\">Hardware</span></a>
           <a class=\"nav-link\" href=\"ports.html\"><span data-l10n-en=\"Ports\" data-l10n-de=\"Ports\">Ports</span></a>
           <a class=\"nav-link\" href=\"storage.html\"><span data-l10n-en=\"Storage\" data-l10n-de=\"Speicher\">Storage</span></a>
-          <span class=\"nav-link disabled\"><span data-l10n-en=\"Services\" data-l10n-de=\"Dienste\">Services</span></span>
+          <a class=\"nav-link\" href=\"services.html\"><span data-l10n-en=\"Services\" data-l10n-de=\"Dienste\">Services</span></a>
           <span class=\"nav-link disabled\"><span data-l10n-en=\"Security\" data-l10n-de=\"Sicherheit\">Security</span></span>
         </nav>
 """.rstrip()
@@ -184,13 +184,7 @@ def apply_generated_l10n(output_path: str) -> None:
 
 
 def apply_container_suite_navigation(output_path: str) -> None:
-    """Add Pulse Suite navigation to generated Container Pulse output.
-
-    Hardware Pulse, Port Pulse, and Storage Pulse have native suite navigation
-    in their templates. This helper patches generated Container Pulse HTML so
-    all active pages share the same page-jump affordance without rewriting the
-    large template.
-    """
+    """Add Pulse Suite navigation to generated Container Pulse output."""
 
     path = Path(output_path)
     if not path.exists():
@@ -238,5 +232,24 @@ def apply_active_storage_navigation(output_path: str) -> None:
     html = html.replace(
         '<span class="nav-link disabled" data-i18n="navStorage">Speicher</span>',
         '<a class="nav-link" href="storage.html" data-i18n="navStorage">Speicher</a>',
+    )
+    path.write_text(html, encoding="utf-8")
+
+
+def apply_active_services_navigation(output_path: str) -> None:
+    """Make the Services navigation item clickable on generated active pages."""
+
+    path = Path(output_path)
+    if not path.exists():
+        return
+
+    html = path.read_text(encoding="utf-8")
+    html = html.replace(
+        '<span class="nav-link disabled" data-i18n="navServices">Services</span>',
+        '<a class="nav-link" href="services.html" data-i18n="navServices">Services</a>',
+    )
+    html = html.replace(
+        '<span class="nav-link disabled" data-i18n="navServices">Dienste</span>',
+        '<a class="nav-link" href="services.html" data-i18n="navServices">Dienste</a>',
     )
     path.write_text(html, encoding="utf-8")

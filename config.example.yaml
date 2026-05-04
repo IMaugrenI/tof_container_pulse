@@ -77,6 +77,35 @@ storage_inode_critical_percent: 90
 storage_max_mounts: 24
 storage_include_tmpfs: false
 
+# Services Pulse explicit checks
+# Services Pulse does not guess important services and does not scan.
+# You explicitly define what should be checked.
+# It does not restart, stop, modify, or repair services.
+service_check_timeout_seconds: 2
+service_allow_external_urls: false
+service_checks: []
+# service_checks:
+#   - name: Local web app
+#     type: url
+#     url: http://127.0.0.1:8080/health
+#     expected_status: 200
+#   - name: Local API TCP
+#     type: tcp
+#     host: 127.0.0.1
+#     port: 8000
+#   - name: Bot heartbeat
+#     type: heartbeat
+#     path: /tmp/my_bot.heartbeat
+#     max_age_seconds: 300
+#
+# External URL checks are disabled by default to avoid surprise network calls.
+# To intentionally check an outside URL, set allow_external: true on that check.
+#   - name: Public status endpoint
+#     type: url
+#     url: https://example.com/health
+#     expected_status: 200
+#     allow_external: true
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
