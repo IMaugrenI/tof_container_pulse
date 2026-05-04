@@ -2,7 +2,7 @@
 
 This module intentionally has no runtime side effects.
 It does not collect system data, call Docker, inspect hardware, scan ports,
-or write files.
+inspect storage, or write files.
 
 The registry is a small planning primitive for the multi-page Pulse Suite.
 Future collectors and templates can import it without triggering expensive work.
@@ -55,8 +55,8 @@ PULSE_PAGES: tuple[PulsePage, ...] = (
         title="Storage Pulse",
         output_path="storage.html",
         collector_module="storage",
-        status="planned",
-        summary="Mount usage, inode pressure, Docker logs, volumes, backups, and optional S.M.A.R.T. signals.",
+        status="active",
+        summary="Local filesystem usage, free space, inode pressure, and storage review hints.",
     ),
     PulsePage(
         key="services",
