@@ -4,17 +4,22 @@ import os
 import platform
 import shutil
 import socket
+import time
 from datetime import datetime
 from pathlib import Path
 
 DEFAULT_HARDWARE_CONFIG = {
     "refresh_seconds": 60,
+    "hardware_cpu_warn_percent": 70.0,
+    "hardware_cpu_critical_percent": 90.0,
     "hardware_memory_warn_percent": 80.0,
     "hardware_memory_critical_percent": 90.0,
     "hardware_swap_warn_percent": 30.0,
     "hardware_swap_critical_percent": 60.0,
     "hardware_disk_warn_percent": 80.0,
     "hardware_disk_critical_percent": 90.0,
+    "hardware_inode_warn_percent": 80.0,
+    "hardware_inode_critical_percent": 90.0,
     "hardware_uptime_warn_days": 30.0,
     "hardware_uptime_critical_days": 60.0,
 }
@@ -63,6 +68,38 @@ def _load_config(config_path):
     return config
 
 
+def _read_cpu_times():
+    path = Path("/proc/stat")
+    if not path.exists():
+        return None
+    try:
+        first_line = path.read_text(encoding="utf-8", errors="ignore").splitlines()[0]
+        parts = first_line.split()
+        if not parts or parts[0] != "cpu":
+            return None
+        values = [int(item) for item in parts[1:]]
+        idle = values[3] + (values[4] if len(values) > 4 else 0)
+        total = sum(values)
+        return idle, total
+    except Exception:
+        return None
+
+
+def _collect_cpu_percent():
+    first = _read_cpu_times()
+    if first is None:
+        return None
+    time.sleep(0.08)
+    second = _read_cpu_times()
+    if second is None:
+        return None
+    idle_delta = second[0] - first[0]
+    total_delta = second[1] - first[1]
+    if total_delta <= 0:
+        return None
+    return max(0.0, min(100.0, 100.0 * (1.0 - idle_delta / total_delta)))
+
+
 def _read_meminfo():
     path = Path("/proc/meminfo")
     if not path.exists():
@@ -109,6 +146,19 @@ def _collect_disk(path="/"):
     return usage.used, usage.total, usage.used / usage.total * 100.0
 
 
+def _collect_inode_usage(path="/"):
+    try:
+        stats = os.statvfs(path)
+    except Exception:
+        return None, None, None
+    total = stats.f_files
+    free = stats.f_ffree
+    if total <= 0:
+        return None, None, None
+    used = max(0, total - free)
+    return used, total, used / total * 100.0
+
+
 def _collect_uptime_seconds():
     path = Path("/proc/uptime")
     if not path.exists():
@@ -130,6 +180,16 @@ def _bytes_to_gib(value):
     if value is None:
         return "-"
     return f"{value / (1024 ** 3):.1f} GiB"
+
+
+def _format_count(value):
+    if value is None:
+        return "-"
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    if value >= 1_000:
+        return f"{value / 1_000:.1f}K"
+    return str(value)
 
 
 def _format_percent(value):
@@ -211,7 +271,7 @@ def _sensor_row(name, value, state, note):
 
 def _recommendation(overall):
     if overall == "critical":
-        return "Immediate inspection recommended. Check memory pressure, disk usage, and host stability."
+        return "Immediate inspection recommended. Check CPU pressure, memory pressure, disk usage, inode usage, and host stability."
     if overall == "warn":
         return "Review host pressure and plan maintenance if the warning persists. No automatic action is executed."
     if overall == "unknown":
@@ -220,26 +280,30 @@ def _recommendation(overall):
 
 
 def _collect_snapshot(config):
+    cpu_percent = _collect_cpu_percent()
     meminfo = _read_meminfo()
     mem_used, mem_total, mem_percent = _collect_memory(meminfo)
     swap_used, swap_total, swap_percent = _collect_swap(meminfo)
     disk_used, disk_total, disk_percent = _collect_disk("/")
+    inode_used, inode_total, inode_percent = _collect_inode_usage("/")
     uptime_seconds = _collect_uptime_seconds()
     load_average = _collect_load_average()
 
     load_text = "-"
     load_percent = None
     load_level = "unknown"
+    cpu_count = os.cpu_count() or 1
     if load_average:
         load_text = f"{load_average[0]:.2f} / {load_average[1]:.2f} / {load_average[2]:.2f}"
-        cpu_count = os.cpu_count() or 1
         load_percent = min(100.0, load_average[0] / cpu_count * 100.0)
         load_level = _level_percent(load_percent, 70, 90)
 
     levels = {
+        "cpu": _level_percent(cpu_percent, config["hardware_cpu_warn_percent"], config["hardware_cpu_critical_percent"]),
         "memory": _level_percent(mem_percent, config["hardware_memory_warn_percent"], config["hardware_memory_critical_percent"]),
         "swap": _level_percent(swap_percent, config["hardware_swap_warn_percent"], config["hardware_swap_critical_percent"]),
         "disk": _level_percent(disk_percent, config["hardware_disk_warn_percent"], config["hardware_disk_critical_percent"]),
+        "inodes": _level_percent(inode_percent, config["hardware_inode_warn_percent"], config["hardware_inode_critical_percent"]),
         "uptime": _level_uptime(uptime_seconds, config["hardware_uptime_warn_days"], config["hardware_uptime_critical_days"]),
         "load": load_level,
     }
@@ -251,17 +315,19 @@ def _collect_snapshot(config):
         "overall": overall,
         "recommendation": _recommendation(overall),
         "summary_cards": [
-            _summary_card("card-load", "LOAD", load_text.split(" / ")[0], levels["load"]),
+            _summary_card("card-cpu", "CPU", _format_percent(cpu_percent), levels["cpu"]),
             _summary_card("card-ram", "RAM", _format_percent(mem_percent), levels["memory"]),
             _summary_card("card-swap", "SWAP", _format_percent(swap_percent), levels["swap"]),
             _summary_card("card-disk", "DISK", _format_percent(disk_percent), levels["disk"]),
             _summary_card("card-uptime", "UPTIME", _format_uptime(uptime_seconds), levels["uptime"]),
         ],
         "metrics": [
-            _metric_bar("Load Average", load_text, load_percent, levels["load"]),
+            _metric_bar("CPU Usage", _format_percent(cpu_percent), cpu_percent, levels["cpu"]),
+            _metric_bar("Load Average", f"{load_text} / {cpu_count} cores", load_percent, levels["load"]),
             _metric_bar("Memory", f"{_format_percent(mem_percent)} / {_bytes_to_gib(mem_total)}", mem_percent, levels["memory"]),
             _metric_bar("Swap", f"{_format_percent(swap_percent)} / {_bytes_to_gib(swap_total)}", swap_percent, levels["swap"]),
             _metric_bar("Root Disk", f"{_format_percent(disk_percent)} / {_bytes_to_gib(disk_total)}", disk_percent, levels["disk"]),
+            _metric_bar("Root Inodes", f"{_format_percent(inode_percent)} / {_format_count(inode_used)} used", inode_percent, levels["inodes"]),
             _metric_bar("Uptime", _format_uptime(uptime_seconds), None, levels["uptime"]),
         ],
         "sensors": [
@@ -325,7 +391,7 @@ def generate_hardware_pulse(
             "overall": "unknown",
             "recommendation": "Hardware Pulse could not refresh completely. Review the warning message.",
             "summary_cards": [
-                _summary_card("card-load", "LOAD", "-", "unknown"),
+                _summary_card("card-cpu", "CPU", "-", "unknown"),
                 _summary_card("card-ram", "RAM", "-", "unknown"),
                 _summary_card("card-swap", "SWAP", "-", "unknown"),
                 _summary_card("card-disk", "DISK", "-", "unknown"),
