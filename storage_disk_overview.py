@@ -51,62 +51,107 @@ DISK_OVERVIEW_STYLE = """
   }
   .disk-tree {
     display: grid;
-    gap: 8px;
+    gap: 9px;
     margin-top: 12px;
   }
   .disk-row {
     display: grid;
-    grid-template-columns: minmax(180px, 1.1fr) 92px 82px minmax(120px, 0.9fr) minmax(190px, 1.1fr);
+    grid-template-columns: minmax(220px, 1.35fr) minmax(128px, 0.8fr) 86px minmax(128px, 0.85fr) minmax(150px, 0.95fr);
     gap: 12px;
     align-items: center;
-    padding: 10px 12px;
+    padding: 11px 13px;
     border: 1px solid rgba(151, 167, 189, 0.13);
-    border-radius: 14px;
+    border-radius: 15px;
     background: rgba(8, 15, 27, 0.38);
   }
   body.light .disk-row {
     background: rgba(255, 255, 255, 0.48);
   }
   .disk-row.child {
-    margin-left: 26px;
+    margin-left: 24px;
   }
-  .disk-name {
+  .disk-row.depth-2,
+  .disk-row.depth-3,
+  .disk-row.depth-4 {
+    margin-left: 48px;
+  }
+  .disk-main {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
   }
   .disk-glyph {
     flex: 0 0 auto;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     display: grid;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 10px;
     border: 1px solid rgba(54, 243, 211, 0.24);
     color: var(--teal);
     background: rgba(54, 243, 211, 0.08);
     font-weight: 900;
     font-size: 12px;
   }
-  .disk-name code,
+  .disk-title {
+    min-width: 0;
+  }
+  .disk-title strong,
   .disk-mounts code {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .disk-label {
+  .disk-title strong {
+    color: var(--text-strong);
+    font-size: 13px;
+    letter-spacing: -0.01em;
+  }
+  .disk-title code {
+    display: block;
+    margin-top: 3px;
     color: var(--muted);
     font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .disk-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(54, 243, 211, 0.18);
+    color: var(--teal);
+    background: rgba(54, 243, 211, 0.07);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .disk-label {
+    color: var(--muted);
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.07em;
   }
   .disk-value {
+    margin-top: 4px;
     color: var(--code-text);
     font-family: var(--mono);
     font-size: 12px;
+    line-height: 1.25;
+  }
+  .disk-value.soft {
+    color: var(--muted);
+    font-family: var(--font);
+    font-weight: 700;
   }
   .disk-help-text {
     color: var(--muted);
@@ -119,7 +164,10 @@ DISK_OVERVIEW_STYLE = """
     .disk-row {
       grid-template-columns: 1fr 1fr;
     }
-    .disk-row.child {
+    .disk-row.child,
+    .disk-row.depth-2,
+    .disk-row.depth-3,
+    .disk-row.depth-4 {
       margin-left: 12px;
     }
   }
@@ -243,9 +291,9 @@ def _format_size(value):
 
 def _type_label(node_type):
     labels = {
-        "disk": ("disk", "Datenträger"),
+        "disk": ("physical/logical disk", "physischer/logischer Datenträger"),
         "part": ("partition", "Partition"),
-        "lvm": ("LVM volume", "LVM-Volume"),
+        "lvm": ("logical volume", "logisches Volume"),
         "crypt": ("encrypted layer", "verschlüsselte Ebene"),
         "raid0": ("RAID device", "RAID-Gerät"),
         "raid1": ("RAID device", "RAID-Gerät"),
@@ -256,14 +304,47 @@ def _type_label(node_type):
     return l10n_text(*labels.get(node_type, (node_type, node_type)))
 
 
+def _friendly_name(node: DiskNode):
+    if node.node_type == "disk":
+        return l10n_text(f"Storage device {node.name}", f"Datenträger {node.name}")
+    if node.node_type == "part":
+        return l10n_text(f"Partition {node.name}", f"Partition {node.name}")
+    if node.node_type == "lvm":
+        return l10n_text(f"Logical volume {node.name}", f"Logisches Volume {node.name}")
+    if node.node_type == "crypt":
+        return l10n_text(f"Encrypted layer {node.name}", f"Verschlüsselte Ebene {node.name}")
+    if node.node_type.startswith("raid"):
+        return l10n_text(f"RAID device {node.name}", f"RAID-Gerät {node.name}")
+    return html.escape(node.name)
+
+
 def _media_label(node: DiskNode):
     if node.node_type != "disk":
         return _type_label(node.node_type)
     if node.rota == "0":
-        return l10n_text("SSD/NVMe-style disk", "SSD/NVMe-artiger Datenträger")
+        return l10n_text("SSD/NVMe-style storage", "SSD/NVMe-artiger Speicher")
     if node.rota == "1":
-        return l10n_text("rotating disk", "rotierende Festplatte")
-    return l10n_text("disk", "Datenträger")
+        return l10n_text("classic rotating disk", "klassische rotierende Festplatte")
+    return l10n_text("storage device", "Datenträger")
+
+
+def _role_label(node: DiskNode):
+    mounts = set(node.mountpoints)
+    if "/" in mounts:
+        return l10n_text("main system", "Hauptsystem")
+    if "/boot/efi" in mounts:
+        return l10n_text("UEFI boot area", "UEFI-Startbereich")
+    if "/boot" in mounts:
+        return l10n_text("boot area", "Startbereich")
+    if mounts:
+        return l10n_text("mounted storage", "eingehängter Speicher")
+    if node.node_type == "disk":
+        return _media_label(node)
+    if node.node_type == "part":
+        return l10n_text("not directly mounted", "nicht direkt eingehängt")
+    if node.node_type == "lvm":
+        return l10n_text("logical storage layer", "logische Speicherebene")
+    return _type_label(node.node_type)
 
 
 def _mount_label(node: DiskNode):
@@ -272,20 +353,37 @@ def _mount_label(node: DiskNode):
     return ", ".join(node.mountpoints)
 
 
+def _glyph(node: DiskNode, depth: int):
+    if node.node_type == "disk":
+        return "D"
+    if node.node_type == "part":
+        return "P"
+    if node.node_type == "lvm":
+        return "L"
+    if node.node_type == "crypt":
+        return "C"
+    if node.node_type.startswith("raid"):
+        return "R"
+    return "•"
+
+
 def _row(node: DiskNode, depth: int):
     child_class = " child" if depth else ""
-    glyph = "D" if node.node_type == "disk" else "└"
+    depth_class = f" depth-{min(depth, 4)}" if depth else ""
     name = html.escape(node.name)
     path = html.escape(node.path)
     mounts = html.escape(_mount_label(node))
     fs_type = html.escape(node.fs_type or "-")
+    mount_display = mounts if mounts != "-" else html.escape(l10n_text("not mounted", "nicht eingehängt"))
     return (
-        f"<div class='disk-row{child_class}'>"
-        f"<div class='disk-name'><span class='disk-glyph'>{glyph}</span><code title='{path}'>{name}</code></div>"
-        f"<div><span class='disk-label'>{l10n_text('Type', 'Typ')}</span><div class='disk-value'>{_type_label(node.node_type)}</div></div>"
+        f"<div class='disk-row{child_class}{depth_class}'>"
+        f"<div class='disk-main'><span class='disk-glyph'>{_glyph(node, depth)}</span>"
+        f"<div class='disk-title'><strong>{_friendly_name(node)}</strong><code title='{path}'>{name}</code>"
+        f"<span class='disk-badge'>{_role_label(node)}</span></div></div>"
+        f"<div><span class='disk-label'>{l10n_text('Meaning', 'Bedeutung')}</span><div class='disk-value soft'>{_media_label(node)}</div></div>"
         f"<div><span class='disk-label'>{l10n_text('Size', 'Größe')}</span><div class='disk-value'>{html.escape(_format_size(node.size))}</div></div>"
         f"<div><span class='disk-label'>{l10n_text('Filesystem', 'Dateisystem')}</span><div class='disk-value'>{fs_type}</div></div>"
-        f"<div class='disk-mounts'><span class='disk-label'>{l10n_text('Used at', 'Genutzt unter')}</span><code title='{mounts}'>{mounts}</code></div>"
+        f"<div class='disk-mounts'><span class='disk-label'>{l10n_text('Used at', 'Genutzt unter')}</span><code title='{mounts}'>{mount_display}</code></div>"
         "</div>"
     )
 
@@ -302,15 +400,11 @@ def _summary(nodes):
     flat = _flatten(nodes)
     disk_count = sum(1 for node in flat if node.node_type == "disk")
     part_count = sum(1 for node in flat if node.node_type == "part")
-    lvm_count = sum(1 for node in flat if node.node_type == "lvm")
     mounted_count = sum(1 for node in flat if node.mountpoints)
-    total_disk_size = sum(node.size or 0 for node in flat if node.node_type == "disk")
     return {
         "disk_count": disk_count,
         "part_count": part_count,
-        "lvm_count": lvm_count,
         "mounted_count": mounted_count,
-        "total_disk_size": total_disk_size,
     }
 
 
@@ -343,15 +437,15 @@ def render_disk_overview():
       <section class="health-panel" aria-label="Disk overview">
         <div class="health-head">
           <h2>{l10n_text('Disk Overview', 'Datenträger-Übersicht')}</h2>
-          <span class="pill">{l10n_text('Read-only lsblk view', 'Nur lesende lsblk-Ansicht')}</span>
+          <span class="pill">{l10n_text('Read-only device map', 'Nur lesende Gerätekarte')}</span>
         </div>
         <section class="disk-overview-grid" aria-label="Disk overview summary">
-          {_mini_card('Disks', 'Datenträger', summary['disk_count'])}
+          {_mini_card('Storage devices', 'Datenträger', summary['disk_count'])}
           {_mini_card('Partitions', 'Partitionen', summary['part_count'])}
           {_mini_card('Mounted targets', 'Eingehängte Ziele', summary['mounted_count'])}
         </section>
         <section class="messages" aria-label="Disk overview explanation">
-          <p><strong>{l10n_text('Plain meaning', 'Einfache Bedeutung')}</strong>: {l10n_text('A disk is the real SSD/HDD device. A partition is one area on that disk. A mountpoint is where Linux uses that area, for example /, /boot, or /boot/efi.', 'Ein Datenträger ist die echte SSD/HDD. Eine Partition ist ein Bereich auf diesem Datenträger. Ein Mountpoint ist der Ort, an dem Linux diesen Bereich nutzt, zum Beispiel /, /boot oder /boot/efi.')}</p>
+          <p><strong>{l10n_text('Plain meaning', 'Einfache Bedeutung')}</strong>: {l10n_text('The top row is the real storage device. The rows below are areas or logical layers on that device. The badge shows the everyday role, for example main system, boot area, or UEFI boot area.', 'Die oberste Zeile ist der echte Datenträger. Die Zeilen darunter sind Bereiche oder logische Ebenen auf diesem Datenträger. Das Badge zeigt die Alltagsrolle, zum Beispiel Hauptsystem, Startbereich oder UEFI-Startbereich.')}</p>
           <p>{l10n_text('Serial numbers, UUIDs, WWN, and model names are not shown to keep screenshots safer.', 'Seriennummern, UUIDs, WWN und Modellnamen werden nicht angezeigt, damit Screenshots sicherer bleiben.')}</p>
         </section>
         <section class="disk-tree" aria-label="Disk tree">
