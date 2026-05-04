@@ -27,6 +27,13 @@ EXPECTED_HTML = (
     "security.html",
 )
 
+REQUIRED_GENERATED_MARKERS = (
+    'id="tof-platform-badges"',
+    "Platform",
+    "Collector",
+    "Read-only",
+)
+
 # Match the suite's real template placeholders, such as {{TITLE}}, {{ROWS}},
 # {{OVERALL_CLASS}}, or {{REFRESH_SECONDS}}. Do not flag arbitrary braces like
 # Docker format strings that may appear inside diagnostic text, for example
@@ -73,6 +80,9 @@ def validate_html_file(path: Path) -> list[str]:
         errors.append(f"missing doctype: {path}")
     if "</html>" not in lowered:
         errors.append(f"missing closing html tag: {path}")
+    for marker in REQUIRED_GENERATED_MARKERS:
+        if marker not in content:
+            errors.append(f"missing generated marker in {path}: {marker}")
     match = TEMPLATE_PLACEHOLDER_RE.search(content)
     if match:
         errors.append(f"unrendered template placeholder found in {path}: {match.group(0)}")
