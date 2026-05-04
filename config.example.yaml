@@ -109,17 +109,22 @@ service_checks: []
 # Security Pulse local review
 # Security Pulse reads local visibility signals only.
 # It does not change firewall rules, SSH settings, users, groups, services,
-# Fail2Ban state, Docker permissions, or system settings.
+# Fail2Ban state, Docker permissions, container settings, or system settings.
 # Some checks may show UNKNOWN when logs or tools are not readable without sudo.
 # Normal laptop/Desktop signals should stay calm: a Docker socket can be normal
 # on a Docker host, a few active terminal sessions can be normal, and missing
 # Fail2Ban can be normal when another protection layer is used.
-# v0.2 adds more orientation signals without exposing sensitive content:
+# v0.2 added more orientation signals without exposing sensitive content:
 # - reboot-required marker
 # - firewall tool visibility
 # - SSH config basic flags only, no file contents
 # - Docker group member count only, no names
 # - basic sensitive file permission sanity checks, no file contents
+# v0.3 adds further local safety orientation:
+# - running Docker container audit for privileged/host/Docker-socket patterns
+# - current-user SSH key permission hygiene, no key names or contents
+# - AppArmor/SELinux visibility
+# - failed systemd unit count, no unit names
 security_command_timeout_seconds: 1.5
 security_auth_log_max_lines: 600
 security_failed_login_warn_count: 5
@@ -127,6 +132,9 @@ security_failed_login_critical_count: 20
 security_session_warn_count: 4
 security_session_critical_count: 10
 security_docker_group_warn_count: 4
+security_docker_inspect_max_containers: 30
+security_systemd_failed_warn_count: 1
+security_systemd_failed_critical_count: 5
 security_check_docker_socket: true
 security_check_auth_log: true
 security_check_fail2ban: true
@@ -136,6 +144,10 @@ security_check_firewall_visibility: true
 security_check_ssh_config: true
 security_check_docker_group: true
 security_check_sensitive_file_permissions: true
+security_check_docker_container_audit: true
+security_check_ssh_key_hygiene: true
+security_check_lsm_visibility: true
+security_check_systemd_failed_units: true
 
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior

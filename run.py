@@ -6,7 +6,7 @@ from pathlib import Path
 from hardware import generate_hardware_pulse
 from ports import generate_port_pulse
 from pulse import generate_pulse
-from security import generate_security_pulse
+from security_v3 import generate_security_pulse
 from services import generate_services_pulse
 from storage import generate_storage_pulse
 from ui_overrides import (
