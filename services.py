@@ -335,17 +335,17 @@ def _card(css_class, label_en, label_de, value, state):
 
 def _summary_cards(entries):
     counts = _summary_counts(entries)
-    total_state = "ok" if counts["total"] else "unknown"
     total_status = "OK" if counts["total"] else NOT_CONFIGURED_LABEL
-    return "\n".join(
+    cards = "\n".join(
         [
-            _card("card-total", "Checks", "Checks", counts["total"], total_state if counts["total"] else "unknown"),
+            _card("card-total", "Checks", "Checks", counts["total"], "ok" if counts["total"] else "unknown"),
             _card("card-ok", "OK", "OK", counts["ok"], "ok"),
             _card("card-warn", "Review", "Prüfen", counts["warn"], "warn" if counts["warn"] else "ok"),
             _card("card-critical", "Critical", "Kritisch", counts["critical"], "critical" if counts["critical"] else "ok"),
             _card("card-unknown", "Not configured", "Nicht konfiguriert", counts["unknown"], "unknown" if counts["unknown"] else "ok"),
         ]
-    ).replace(">UNKNOWN</small>", f">{total_status}</small>", 1)
+    )
+    return cards.replace(">UNKNOWN</small>", f">{total_status}</small>", 1)
 
 
 def _format_latency(value):
@@ -475,7 +475,7 @@ def _services_table(entries):
 def _display_overall(overall, entries):
     if not entries:
         return NOT_CONFIGURED_LABEL
-    return overall.upper()
+    return html.escape(overall.upper())
 
 
 def _render(template_path, output_path, generated_at, previous_last_success, config, entries):
@@ -487,7 +487,7 @@ def _render(template_path, output_path, generated_at, previous_last_success, con
         "{{REFRESH_SECONDS}}": str(int(config.get("refresh_seconds", 60))),
         "{{GENERATED_AT}}": html.escape(generated_at),
         "{{LAST_SUCCESS_AT}}": html.escape(previous_last_success),
-        "{{OVERALL}}": html.escape(display_overall),
+        "{{OVERALL}}": display_overall,
         "{{OVERALL_CLASS}}": html.escape(overall),
         "{{RECOMMENDATION}}": _overall_recommendation(overall, entries),
         "{{SUMMARY_CARDS}}": _summary_cards(entries),
