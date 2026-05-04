@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from hardware_sensors import DEFAULT_SENSOR_CONFIG, HardwareSensor, collect_hardware_sensors
+from i18n_static import l10n_text
 
 DEFAULT_HARDWARE_CONFIG = {
     "refresh_seconds": 60,
@@ -28,6 +29,14 @@ DEFAULT_HARDWARE_CONFIG = {
 }
 
 SEVERITY_RANK = {"ok": 0, "unknown": 1, "warn": 2, "critical": 3}
+
+CATEGORY_LABELS = {
+    "temperature": ("temperature", "Temperatur"),
+    "gpu_temperature": ("GPU temperature", "GPU-Temperatur"),
+    "fan": ("fan", "Lüfter"),
+    "gpu_usage": ("GPU usage", "GPU-Auslastung"),
+    "vram": ("VRAM", "VRAM"),
+}
 
 
 def _now() -> str:
@@ -240,34 +249,34 @@ def _overall(levels):
     return max(levels or ["unknown"], key=lambda item: SEVERITY_RANK.get(item, 0))
 
 
-def _metric_bar(label, value_text, percent, level):
+def _metric_bar(label_html, value_text, percent, level):
     width = "0%" if percent is None else f"{max(0.0, min(float(percent), 100.0)):.1f}%"
     return (
         f"<div class='metric-row metric-{html.escape(level)}'>"
-        f"<span class='metric-label'>{html.escape(label)}</span>"
+        f"<span class='metric-label'>{label_html}</span>"
         f"<span class='metric-value'>{html.escape(value_text)}</span>"
         f"<span class='metric-track'><span class='metric-fill' style='width:{width}'></span></span>"
         "</div>"
     )
 
 
-def _summary_card(css_class, label, value, state):
+def _summary_card(css_class, label_en, label_de, value, state):
     return (
         f"<div class='card {html.escape(css_class)}'>"
-        f"<span>{html.escape(label)}</span>"
+        f"<span>{l10n_text(label_en, label_de)}</span>"
         f"<strong>{html.escape(value)}</strong>"
         f"<small class='state state-{html.escape(state)}'>{html.escape(state.upper())}</small>"
         "</div>"
     )
 
 
-def _sensor_row(name, value, state, note):
+def _sensor_row(name, value, state, note_html):
     return (
         "<tr>"
         f"<td>{html.escape(name)}</td>"
         f"<td><code>{html.escape(value)}</code></td>"
         f"<td><span class='sev-badge sev-{html.escape(state)}'>{html.escape(state.upper())}</span></td>"
-        f"<td>{html.escape(note)}</td>"
+        f"<td>{note_html}</td>"
         "</tr>"
     )
 
@@ -278,10 +287,39 @@ def _short_source(source: str) -> str:
     return source
 
 
+def _category_label(category):
+    en, de = CATEGORY_LABELS.get(category, (category, category))
+    return l10n_text(en, de)
+
+
+def _sensor_note(sensor: HardwareSensor):
+    source = _short_source(sensor.source)
+    if sensor.category == "fan" and sensor.value.startswith("0"):
+        return l10n_text(
+            f"Fan reports 0 RPM. This can be normal on laptops with fan-stop behavior. Source: {source}.",
+            f"Der Lüfter meldet 0 RPM. Das kann bei Laptops mit Fan-Stop-Verhalten normal sein. Quelle: {source}.",
+        )
+    if sensor.category == "fan":
+        return l10n_text(
+            f"Local fan speed sensor. Low RPM can be normal on quiet systems. Source: {source}.",
+            f"Lokaler Lüfterdrehzahl-Sensor. Niedrige RPM können bei leisen Systemen normal sein. Quelle: {source}.",
+        )
+    if sensor.category in {"temperature", "gpu_temperature"}:
+        return l10n_text(
+            f"Local temperature sensor. Source: {source}.",
+            f"Lokaler Temperatursensor. Quelle: {source}.",
+        )
+    if sensor.category in {"gpu_usage", "vram"}:
+        return l10n_text(
+            f"Optional GPU sensor. Source: {source}.",
+            f"Optionaler GPU-Sensor. Quelle: {source}.",
+        )
+    return l10n_text(f"Local hardware sensor. Source: {source}.", f"Lokaler Hardware-Sensor. Quelle: {source}.")
+
+
 def _sensor_to_row(sensor: HardwareSensor):
-    note = f"{sensor.note} Source: {_short_source(sensor.source)}."
     name = f"{sensor.name} ({sensor.category})"
-    return _sensor_row(name, sensor.value, sensor.state, note)
+    return _sensor_row(name, sensor.value, sensor.state, _sensor_note(sensor))
 
 
 def _sensor_summary(sensors: list[HardwareSensor]) -> str:
@@ -291,36 +329,49 @@ def _sensor_summary(sensors: list[HardwareSensor]) -> str:
         counts[sensor.state] = counts.get(sensor.state, 0) + 1
         categories[sensor.category] = categories.get(sensor.category, 0) + 1
 
-    category_text = ", ".join(f"{name}: {count}" for name, count in sorted(categories.items())) or "none"
+    category_text_en = ", ".join(f"{name}: {count}" for name, count in sorted(categories.items())) or "none"
+    category_text_de = category_text_en.replace("fan", "Lüfter").replace("temperature", "Temperatur")
     return (
         '<div class="messages" aria-label="Sensor summary">'
-        f"<p><strong>Sensor summary</strong>: {len(sensors)} found · "
+        f"<p><strong>{l10n_text('Sensor summary', 'Sensor-Zusammenfassung')}</strong>: {len(sensors)} {l10n_text('found', 'gefunden')} · "
         f"OK {counts.get('ok', 0)} · WARN {counts.get('warn', 0)} · "
         f"CRITICAL {counts.get('critical', 0)} · UNKNOWN {counts.get('unknown', 0)}</p>"
-        f"<p>Categories: {html.escape(category_text)}</p>"
+        f"<p>{l10n_text('Categories', 'Kategorien')}: {l10n_text(category_text_en, category_text_de)}</p>"
         "</div>"
     )
 
 
 def _recommendation(overall):
     if overall == "critical":
-        return "Immediate inspection recommended. Check CPU pressure, memory pressure, disk usage, inode usage, sensors, and host stability."
+        return l10n_text(
+            "Immediate inspection recommended. Check CPU pressure, memory pressure, disk usage, inode usage, sensors, and host stability.",
+            "Sofortige Prüfung empfohlen. Prüfe CPU-Druck, Speicherdruck, Plattennutzung, Inodes, Sensoren und Host-Stabilität.",
+        )
     if overall == "warn":
-        return "Review host pressure and sensor warnings. Plan maintenance if the warning persists. No automatic action is executed."
+        return l10n_text(
+            "Review host pressure and sensor warnings. Plan maintenance if the warning persists. No automatic action is executed.",
+            "Prüfe Host-Auslastung und Sensorwarnungen. Plane Wartung, wenn die Warnung bestehen bleibt. Es wird keine automatische Aktion ausgeführt.",
+        )
     if overall == "unknown":
-        return "Some host signals are unavailable on this platform. Review unavailable rows if needed."
-    return "No action needed. Basic host and sensor signals look healthy."
+        return l10n_text(
+            "Some host signals are unavailable on this platform. Review unavailable rows if needed.",
+            "Einige Host-Signale sind auf dieser Plattform nicht verfügbar. Prüfe nicht verfügbare Zeilen bei Bedarf.",
+        )
+    return l10n_text(
+        "No action needed. Basic host and sensor signals look healthy.",
+        "Keine Aktion nötig. Grundlegende Host- und Sensorsignale sehen gesund aus.",
+    )
 
 
 def _optional_sensor_notice():
-    return """
+    return f"""
       <section class="health-panel" aria-label="Optional sensors">
         <div class="health-head">
-          <h2 data-i18n="sensorOverview">Optional Sensors</h2>
-          <span class="pill" data-i18n="optionalLater">Optional deep-dive later</span>
+          <h2>{l10n_text('Optional Sensors', 'Optionale Sensoren')}</h2>
+          <span class="pill">{l10n_text('Optional deep-dive later', 'Optionaler Deep-Dive später')}</span>
         </div>
-        <p class="recommendation"><strong>Sensor status</strong>: No live sensor values were exposed by this host during this run, or sensor collection is disabled.</p>
-        <p class="recommendation">Hardware Pulse can render generic sensor rows for temperature, fan RPM, GPU, VRAM, and future sensor adapters when values are available.</p>
+        <p class="recommendation"><strong>{l10n_text('Sensor status', 'Sensorstatus')}</strong>: {l10n_text('No live sensor values were exposed by this host during this run, or sensor collection is disabled.', 'Dieser Host hat bei diesem Lauf keine Live-Sensorwerte bereitgestellt oder die Sensorsammlung ist deaktiviert.')}</p>
+        <p class="recommendation">{l10n_text('Hardware Pulse can render generic sensor rows for temperature, fan RPM, GPU, VRAM, and future sensor adapters when values are available.', 'Hardware Pulse kann generische Sensorzeilen für Temperatur, Lüfter-RPM, GPU, VRAM und zukünftige Sensoradapter anzeigen, wenn Werte verfügbar sind.')}</p>
       </section>
 """.rstrip()
 
@@ -396,20 +447,20 @@ def _collect_snapshot(config):
         "overall": overall,
         "recommendation": _recommendation(overall),
         "summary_cards": [
-            _summary_card("card-cpu", "CPU", _format_percent(cpu_percent), levels["cpu"]),
-            _summary_card("card-ram", "RAM", _format_percent(mem_percent), levels["memory"]),
-            _summary_card("card-swap", "SWAP", _format_percent(swap_percent), levels["swap"]),
-            _summary_card("card-disk", "DISK", _format_percent(disk_percent), levels["disk"]),
-            _summary_card("card-uptime", "UPTIME", _format_uptime(uptime_seconds), levels["uptime"]),
+            _summary_card("card-cpu", "CPU", "CPU", _format_percent(cpu_percent), levels["cpu"]),
+            _summary_card("card-ram", "RAM", "RAM", _format_percent(mem_percent), levels["memory"]),
+            _summary_card("card-swap", "SWAP", "SWAP", _format_percent(swap_percent), levels["swap"]),
+            _summary_card("card-disk", "DISK", "PLATTE", _format_percent(disk_percent), levels["disk"]),
+            _summary_card("card-uptime", "UPTIME", "LAUFZEIT", _format_uptime(uptime_seconds), levels["uptime"]),
         ],
         "metrics": [
-            _metric_bar("CPU Usage", _format_percent(cpu_percent), cpu_percent, levels["cpu"]),
-            _metric_bar("Load Average", f"{load_text} / {cpu_count} cores", load_percent, levels["load"]),
-            _metric_bar("Memory", f"{_format_percent(mem_percent)} / {_bytes_to_gib(mem_total)}", mem_percent, levels["memory"]),
-            _metric_bar("Swap", f"{_format_percent(swap_percent)} / {_bytes_to_gib(swap_total)}", swap_percent, levels["swap"]),
-            _metric_bar("Root Disk", f"{_format_percent(disk_percent)} / {_bytes_to_gib(disk_total)}", disk_percent, levels["disk"]),
-            _metric_bar("Root Inodes", f"{_format_percent(inode_percent)} / {_format_count(inode_used)} used", inode_percent, levels["inodes"]),
-            _metric_bar("Uptime", _format_uptime(uptime_seconds), None, levels["uptime"]),
+            _metric_bar(l10n_text("CPU Usage", "CPU-Auslastung"), _format_percent(cpu_percent), cpu_percent, levels["cpu"]),
+            _metric_bar(l10n_text("Load Average", "Systemlast"), f"{load_text} / {cpu_count} cores", load_percent, levels["load"]),
+            _metric_bar(l10n_text("Memory", "Arbeitsspeicher"), f"{_format_percent(mem_percent)} / {_bytes_to_gib(mem_total)}", mem_percent, levels["memory"]),
+            _metric_bar(l10n_text("Swap", "Swap"), f"{_format_percent(swap_percent)} / {_bytes_to_gib(swap_total)}", swap_percent, levels["swap"]),
+            _metric_bar(l10n_text("Root Disk", "Root-Platte"), f"{_format_percent(disk_percent)} / {_bytes_to_gib(disk_total)}", disk_percent, levels["disk"]),
+            _metric_bar(l10n_text("Root Inodes", "Root-Inodes"), f"{_format_percent(inode_percent)} / {_format_count(inode_used)} used", inode_percent, levels["inodes"]),
+            _metric_bar(l10n_text("Uptime", "Laufzeit"), _format_uptime(uptime_seconds), None, levels["uptime"]),
         ],
         "sensors": sensor_rows,
         "sensor_summary": sensor_summary,
@@ -429,11 +480,11 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
         "{{PLATFORM}}": html.escape(snapshot.get("platform", "unknown")),
         "{{OVERALL}}": html.escape(str(snapshot.get("overall", "unknown")).upper()),
         "{{OVERALL_CLASS}}": html.escape(str(snapshot.get("overall", "unknown"))),
-        "{{RECOMMENDATION}}": html.escape(snapshot.get("recommendation", "No recommendation available.")),
+        "{{RECOMMENDATION}}": snapshot.get("recommendation", l10n_text("No recommendation available.", "Keine Empfehlung verfügbar.")),
         "{{SUMMARY_CARDS}}": "\n".join(snapshot.get("summary_cards", [])),
         "{{METRIC_ROWS}}": "\n".join(snapshot.get("metrics", [])),
         "{{SENSOR_ROWS}}": "\n".join(sensor_rows),
-        "{{MESSAGES}}": "".join(f"<p>{html.escape(item)}</p>" for item in messages) or "<p>No hardware refresh warnings.</p>",
+        "{{MESSAGES}}": "".join(f"<p>{l10n_text(item, item)}</p>" for item in messages) or f"<p>{l10n_text('No hardware refresh warnings.', 'Keine Hardware-Aktualisierungswarnungen.')}</p>",
     }
     html_text = template
     for key, value in replacements.items():
@@ -471,13 +522,13 @@ def generate_hardware_pulse(
             "hostname": socket.gethostname(),
             "platform": f"{platform.system()} {platform.release()} / {platform.machine()}",
             "overall": "unknown",
-            "recommendation": "Hardware Pulse could not refresh completely. Review the warning message.",
+            "recommendation": l10n_text("Hardware Pulse could not refresh completely. Review the warning message.", "Hardware Pulse konnte nicht vollständig aktualisieren. Prüfe die Warnmeldung."),
             "summary_cards": [
-                _summary_card("card-cpu", "CPU", "-", "unknown"),
-                _summary_card("card-ram", "RAM", "-", "unknown"),
-                _summary_card("card-swap", "SWAP", "-", "unknown"),
-                _summary_card("card-disk", "DISK", "-", "unknown"),
-                _summary_card("card-uptime", "UPTIME", "-", "unknown"),
+                _summary_card("card-cpu", "CPU", "CPU", "-", "unknown"),
+                _summary_card("card-ram", "RAM", "RAM", "-", "unknown"),
+                _summary_card("card-swap", "SWAP", "SWAP", "-", "unknown"),
+                _summary_card("card-disk", "DISK", "PLATTE", "-", "unknown"),
+                _summary_card("card-uptime", "UPTIME", "LAUFZEIT", "-", "unknown"),
             ],
             "metrics": [],
             "sensors": [],

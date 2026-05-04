@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from i18n_static import l10n_text, l10n_title
+
 DEFAULT_PORT_CONFIG = {
     "refresh_seconds": 60,
     "port_command_timeout_seconds": 2.0,
@@ -28,26 +30,39 @@ EXPOSURE_SORT = {
 }
 
 KNOWN_PORTS = {
-    "22": "SSH remote login",
-    "53": "DNS name resolver",
-    "80": "HTTP web server",
-    "443": "HTTPS web server",
-    "631": "printing service",
-    "1900": "SSDP / device discovery",
-    "3000": "development web app",
-    "3306": "MySQL / MariaDB database",
-    "5000": "development API or local web app",
-    "5173": "Vite development web app",
-    "5353": "mDNS / Bonjour discovery",
-    "5432": "PostgreSQL database",
-    "6379": "Redis database/cache",
-    "8000": "development API or local web app",
-    "8080": "web app or development server",
-    "9090": "dashboard or metrics service",
-    "9100": "metrics exporter or printer-style service",
-    "11434": "local LLM API, often Ollama",
-    "27017": "MongoDB database",
-    "41641": "VPN/mesh port, often Tailscale/WireGuard-style",
+    "22": ("SSH remote login", "SSH-Fernzugriff"),
+    "53": ("DNS name resolver", "DNS-Namensauflösung"),
+    "80": ("HTTP web server", "HTTP-Webserver"),
+    "443": ("HTTPS web server", "HTTPS-Webserver"),
+    "631": ("printing service", "Druckdienst"),
+    "1900": ("SSDP / device discovery", "SSDP / Geräteerkennung"),
+    "3000": ("development web app", "Entwicklungs-Webapp"),
+    "3306": ("MySQL / MariaDB database", "MySQL-/MariaDB-Datenbank"),
+    "5000": ("development API or local web app", "Entwicklungs-API oder lokale Webapp"),
+    "5173": ("Vite development web app", "Vite-Entwicklungs-Webapp"),
+    "5353": ("mDNS / Bonjour discovery", "mDNS-/Bonjour-Erkennung"),
+    "5432": ("PostgreSQL database", "PostgreSQL-Datenbank"),
+    "6379": ("Redis database/cache", "Redis-Datenbank/Cache"),
+    "8000": ("development API or local web app", "Entwicklungs-API oder lokale Webapp"),
+    "8080": ("web app or development server", "Webapp oder Entwicklungsserver"),
+    "9090": ("dashboard or metrics service", "Dashboard- oder Metrikdienst"),
+    "9100": ("metrics exporter or printer-style service", "Metrik-Exporter oder druckähnlicher Dienst"),
+    "11434": ("local LLM API, often Ollama", "lokale KI-/LLM-API, oft Ollama"),
+    "27017": ("MongoDB database", "MongoDB-Datenbank"),
+    "41641": ("VPN/mesh port, often Tailscale/WireGuard-style", "VPN-/Mesh-Port, oft Tailscale-/WireGuard-artig"),
+}
+
+EXPOSURE_LABELS = {
+    "local-only": ("local-only", "nur lokal"),
+    "all-interfaces": ("all interfaces", "alle Schnittstellen"),
+    "specific-interface": ("specific interface", "bestimmte Schnittstelle"),
+    "cgnat-or-mesh": ("CGNAT/mesh", "CGNAT/Mesh"),
+    "private-lan": ("private LAN", "privates LAN"),
+    "ipv6-link-local": ("IPv6 link-local", "IPv6 Link-Local"),
+    "ipv6-unique-local": ("IPv6 private/ULA", "IPv6 privat/ULA"),
+    "link-local": ("link-local", "Link-Local"),
+    "allowed": ("allowed", "erlaubt"),
+    "unknown": ("unknown", "unbekannt"),
 }
 
 
@@ -169,9 +184,9 @@ def _parse_netstat_output(output, config):
 
 
 def _build_entry(protocol, state, bind_address, port, process, config):
-    exposure, severity, note = _classify_bind(bind_address)
+    exposure, severity, note_en, note_de = _classify_bind(bind_address)
     display_address = _display_address(bind_address)
-    base_note = _human_note(protocol, port, exposure, severity, note)
+    base_note = _human_note(protocol, port, exposure, severity, note_en, note_de)
     entry = PortEntry(
         protocol=protocol,
         state=state,
@@ -193,7 +208,10 @@ def _build_entry(protocol, state, bind_address, port, process, config):
             exposure="allowed",
             severity="ok",
             process=entry.process,
-            note="Allowed by your config. This listener is expected on this machine. If that changes, remove it from the allowlist.",
+            note=l10n_text(
+                "Allowed by your config. This listener is expected on this machine. If that changes, remove it from the allowlist.",
+                "Durch deine Konfiguration erlaubt. Dieser Listener wird auf dieser Maschine erwartet. Wenn sich das ändert, entferne ihn aus der Allowlist.",
+            ),
         )
     return entry
 
@@ -220,26 +238,61 @@ def _classify_bind(address):
     normalized = _normalize_address(address)
 
     if normalized.startswith("127.") or normalized in {"::1", "localhost"}:
-        return "local-only", "ok", "Only apps on this device should reach it."
+        return "local-only", "ok", "Only apps on this device should reach it.", "Nur Apps auf diesem Gerät sollten ihn erreichen."
     if normalized in {"0.0.0.0", "::", "*", ""}:
-        return "all-interfaces", "warn", "This listens on every network interface. Firewall, router, or VPN settings decide who can actually reach it."
+        return (
+            "all-interfaces",
+            "warn",
+            "This listens on every network interface. Firewall, router, or VPN settings decide who can actually reach it.",
+            "Dieser Dienst lauscht auf allen Netzwerkschnittstellen. Firewall-, Router- oder VPN-Einstellungen entscheiden, wer ihn wirklich erreichen kann.",
+        )
 
     ip_obj = _parse_ip(normalized)
     if ip_obj is None:
-        return "unknown", "unknown", "Port Pulse could not classify this bind address. Review it manually."
+        return (
+            "unknown",
+            "unknown",
+            "Port Pulse could not classify this bind address. Review it manually.",
+            "Port Pulse konnte diese Bind-Adresse nicht sicher einordnen. Bitte manuell prüfen.",
+        )
 
     if ip_obj.is_loopback:
-        return "local-only", "ok", "Only apps on this device should reach it."
+        return "local-only", "ok", "Only apps on this device should reach it.", "Nur Apps auf diesem Gerät sollten ihn erreichen."
     if ip_obj.version == 4 and ip_obj in ipaddress.ip_network("100.64.0.0/10"):
-        return "cgnat-or-mesh", "warn", "This looks like CGNAT, VPN, or mesh networking. It may be reachable through that network."
+        return (
+            "cgnat-or-mesh",
+            "warn",
+            "This looks like CGNAT, VPN, or mesh networking. It may be reachable through that network.",
+            "Das sieht nach CGNAT, VPN oder Mesh-Netzwerk aus. Es könnte über dieses Netzwerk erreichbar sein.",
+        )
     if ip_obj.is_link_local:
-        return "ipv6-link-local" if ip_obj.version == 6 else "link-local", "warn", "This is link-local. It normally stays inside the local network segment, but should still be understood."
+        return (
+            "ipv6-link-local" if ip_obj.version == 6 else "link-local",
+            "warn",
+            "This is link-local. It normally stays inside the local network segment, but should still be understood.",
+            "Das ist Link-Local. Normalerweise bleibt es im lokalen Netzwerksegment, sollte aber trotzdem verstanden werden.",
+        )
     if ip_obj.version == 6 and ip_obj.is_private:
-        return "ipv6-unique-local", "warn", "This is private IPv6/ULA-style networking. It may be reachable inside a private or VPN network."
+        return (
+            "ipv6-unique-local",
+            "warn",
+            "This is private IPv6/ULA-style networking. It may be reachable inside a private or VPN network.",
+            "Das ist privates IPv6/ULA-artiges Netzwerk. Es könnte innerhalb eines privaten oder VPN-Netzwerks erreichbar sein.",
+        )
     if ip_obj.is_private:
-        return "private-lan", "warn", "This is a private LAN address. Devices in the same network may be able to reach it."
+        return (
+            "private-lan",
+            "warn",
+            "This is a private LAN address. Devices in the same network may be able to reach it.",
+            "Das ist eine private LAN-Adresse. Geräte im selben Netzwerk könnten sie erreichen.",
+        )
 
-    return "specific-interface", "warn", "This is not localhost. It may be reachable from outside this device depending on your network."
+    return (
+        "specific-interface",
+        "warn",
+        "This is not localhost. It may be reachable from outside this device depending on your network.",
+        "Das ist nicht localhost. Je nach Netzwerk könnte es von außerhalb dieses Geräts erreichbar sein.",
+    )
 
 
 def _parse_ip(address):
@@ -260,30 +313,48 @@ def _display_address(address):
 def _known_port_hint(protocol, port):
     hint = KNOWN_PORTS.get(str(port))
     if not hint:
-        return "unknown or app-specific service"
+        return "unknown or app-specific service", "unbekannter oder app-spezifischer Dienst"
     if str(port) == "41641" and protocol == "udp":
-        return "VPN/mesh port, often Tailscale/WireGuard-style"
+        return "VPN/mesh port, often Tailscale/WireGuard-style", "VPN-/Mesh-Port, oft Tailscale-/WireGuard-artig"
     return hint
 
 
 def _human_check_text(port, exposure, severity):
     if severity == "ok":
-        return "Usually fine when you expected this app to run locally."
+        return (
+            "Usually fine when you expected this app to run locally.",
+            "Meist in Ordnung, wenn du erwartest, dass diese App lokal läuft.",
+        )
     if exposure == "all-interfaces" and str(port) == "22":
-        return "If you do not use remote login to this machine, consider disabling SSH or binding it more narrowly."
+        return (
+            "If you do not use remote login to this machine, consider disabling SSH or binding it more narrowly.",
+            "Wenn du keinen Fernzugriff auf diese Maschine nutzt, solltest du SSH deaktivieren oder enger binden.",
+        )
     if exposure == "all-interfaces":
-        return "Check whether this service should be reachable from other networks."
+        return (
+            "Check whether this service should be reachable from other networks.",
+            "Prüfe, ob dieser Dienst aus anderen Netzwerken erreichbar sein soll.",
+        )
     if exposure in {"private-lan", "cgnat-or-mesh", "ipv6-link-local", "ipv6-unique-local", "link-local"}:
-        return "Check whether this is expected for your LAN, VPN, or mesh setup."
+        return (
+            "Check whether this is expected for your LAN, VPN, or mesh setup.",
+            "Prüfe, ob das für dein LAN-, VPN- oder Mesh-Setup erwartet ist.",
+        )
     if severity == "unknown":
-        return "If you do not recognize it, search the port number or inspect the owning process locally."
-    return "Review whether this listener is expected."
+        return (
+            "If you do not recognize it, search the port number or inspect the owning process locally.",
+            "Wenn du es nicht erkennst, suche nach der Portnummer oder prüfe lokal den zugehörigen Prozess.",
+        )
+    return "Review whether this listener is expected.", "Prüfe, ob dieser Listener erwartet ist."
 
 
-def _human_note(protocol, port, exposure, severity, technical_note):
-    likely = _known_port_hint(protocol, port)
-    check = _human_check_text(port, exposure, severity)
-    return f"Likely: {likely}. Meaning: {technical_note} Check: {check}"
+def _human_note(protocol, port, exposure, severity, technical_note_en, technical_note_de):
+    likely_en, likely_de = _known_port_hint(protocol, port)
+    check_en, check_de = _human_check_text(port, exposure, severity)
+    return l10n_text(
+        f"Likely: {likely_en}. Meaning: {technical_note_en} Check: {check_en}",
+        f"Vermutlich: {likely_de}. Bedeutung: {technical_note_de} Prüfung: {check_de}",
+    )
 
 
 def _is_allowed(entry, allowed_listeners):
@@ -367,27 +438,32 @@ def _summary_cards(entries):
     counts = _summary_counts(entries)
     return "\n".join(
         [
-            _card("card-total", "TOTAL", str(counts["total"]), "ok" if counts["total"] else "unknown"),
-            _card("card-local", "LOCAL", str(counts["local"]), "ok"),
-            _card("card-public", "ALL IFACES", str(counts["all_interfaces"]), "warn" if counts["all_interfaces"] else "ok"),
-            _card("card-specific", "LAN/MESH", str(counts["private_or_mesh"]), "warn" if counts["private_or_mesh"] else "ok"),
-            _card("card-warn", "REVIEW", str(counts["review"]), "warn" if counts["review"] else "ok"),
+            _card("card-total", "TOTAL", "GESAMT", str(counts["total"]), "ok" if counts["total"] else "unknown"),
+            _card("card-local", "LOCAL", "LOKAL", str(counts["local"]), "ok"),
+            _card("card-public", "ALL IFACES", "ALLE NETZE", str(counts["all_interfaces"]), "warn" if counts["all_interfaces"] else "ok"),
+            _card("card-specific", "LAN/MESH", "LAN/MESH", str(counts["private_or_mesh"]), "warn" if counts["private_or_mesh"] else "ok"),
+            _card("card-warn", "REVIEW", "PRÜFEN", str(counts["review"]), "warn" if counts["review"] else "ok"),
         ]
     )
 
 
-def _card(css_class, label, value, state):
+def _card(css_class, label_en, label_de, value, state):
     return (
         f"<div class='card {html.escape(css_class)}'>"
-        f"<span>{html.escape(label)}</span>"
+        f"<span>{l10n_text(label_en, label_de)}</span>"
         f"<strong>{html.escape(value)}</strong>"
         f"<small class='state state-{html.escape(state)}'>{html.escape(state.upper())}</small>"
         "</div>"
     )
 
 
+def _exposure_label(exposure):
+    en, de = EXPOSURE_LABELS.get(exposure, (exposure, exposure))
+    return l10n_text(en, de)
+
+
 def _entry_row(entry):
-    title = "" if entry.display_address == entry.bind_address else f" title='{html.escape(entry.bind_address)}'"
+    title = "" if entry.display_address == entry.bind_address else f" {l10n_title(entry.bind_address, entry.bind_address)}"
     return (
         "<tr>"
         f"<td><code>{html.escape(entry.protocol)}</code></td>"
@@ -395,29 +471,38 @@ def _entry_row(entry):
         f"<td><code{title}>{html.escape(entry.display_address)}</code></td>"
         f"<td><code>{html.escape(entry.port)}</code></td>"
         f"<td><span class='sev-badge sev-{html.escape(entry.severity)}'>{html.escape(entry.severity.upper())}</span></td>"
-        f"<td>{html.escape(entry.exposure)}</td>"
+        f"<td>{_exposure_label(entry.exposure)}</td>"
         f"<td><code>{html.escape(entry.process)}</code></td>"
-        f"<td>{html.escape(entry.note)}</td>"
+        f"<td>{entry.note}</td>"
         "</tr>"
     )
 
 
 def _recommendation(overall):
     if overall == "warn":
-        return "Some ports may be reachable through your network, LAN, VPN, or mesh. Review the rows marked WARN. Port Pulse only explains; it does not change firewall or service settings."
+        return l10n_text(
+            "Some ports may be reachable through your network, LAN, VPN, or mesh. Review the rows marked WARN. Port Pulse only explains; it does not change firewall or service settings.",
+            "Einige Ports könnten über dein Netzwerk, LAN, VPN oder Mesh erreichbar sein. Prüfe die Zeilen mit WARN. Port Pulse erklärt nur; es ändert keine Firewall- oder Diensteinstellungen.",
+        )
     if overall == "unknown":
-        return "No local port data was collected. Ensure `ss` or `netstat` is available if you want Port Pulse details."
-    return "No review needed. Listening ports appear local-only or explicitly allowed."
+        return l10n_text(
+            "No local port data was collected. Ensure `ss` or `netstat` is available if you want Port Pulse details.",
+            "Es wurden keine lokalen Portdaten gesammelt. Stelle sicher, dass `ss` oder `netstat` verfügbar ist, wenn du Port-Pulse-Details möchtest.",
+        )
+    return l10n_text(
+        "No review needed. Listening ports appear local-only or explicitly allowed.",
+        "Keine Prüfung nötig. Lauschende Ports wirken nur lokal oder ausdrücklich erlaubt.",
+    )
 
 
 def _empty_notice():
-    return """
+    return f"""
       <section class="health-panel" aria-label="Port scan notice">
         <div class="health-head">
-          <h2>Port Overview</h2>
-          <span class="pill">No local data</span>
+          <h2>{l10n_text('Port Overview', 'Port-Übersicht')}</h2>
+          <span class="pill">{l10n_text('No local data', 'Keine lokalen Daten')}</span>
         </div>
-        <p class="recommendation">No listening-port data was collected. Port Pulse uses local read-only tools such as <code>ss</code> or <code>netstat</code>.</p>
+        <p class="recommendation">{l10n_text('No listening-port data was collected. Port Pulse uses local read-only tools such as ss or netstat.', 'Es wurden keine Daten zu lauschenden Ports gesammelt. Port Pulse nutzt lokale Nur-Lese-Werkzeuge wie ss oder netstat.')}</p>
       </section>
 """.rstrip()
 
@@ -428,11 +513,15 @@ def _review_summary(entries):
     counts = _summary_counts(entries)
     return (
         '<section class="messages" aria-label="Port review summary">'
-        f"<p><strong>Port summary</strong>: {counts['total']} listeners · "
-        f"local {counts['local']} · all-interfaces {counts['all_interfaces']} · "
-        f"LAN/mesh {counts['private_or_mesh']} · allowed {counts['allowed']} · review {counts['review']}</p>"
-        "<p><strong>Plain meaning</strong>: OK usually means only this device can reach it. WARN means another device, LAN, VPN, or mesh network might reach it. UNKNOWN means Port Pulse could not classify it safely.</p>"
-        "<p>Port Pulse only explains what is listening. It does not block, open, close, or change ports.</p>"
+        f"<p><strong>{l10n_text('Port summary', 'Port-Zusammenfassung')}</strong>: "
+        f"{counts['total']} {l10n_text('listeners', 'Listener')} · "
+        f"{l10n_text('local', 'lokal')} {counts['local']} · "
+        f"{l10n_text('all-interfaces', 'alle Schnittstellen')} {counts['all_interfaces']} · "
+        f"LAN/mesh {counts['private_or_mesh']} · "
+        f"{l10n_text('allowed', 'erlaubt')} {counts['allowed']} · "
+        f"{l10n_text('review', 'prüfen')} {counts['review']}</p>"
+        f"<p><strong>{l10n_text('Plain meaning', 'Einfache Bedeutung')}</strong>: {l10n_text('OK usually means only this device can reach it. WARN means another device, LAN, VPN, or mesh network might reach it. UNKNOWN means Port Pulse could not classify it safely.', 'OK bedeutet meistens, dass nur dieses Gerät den Dienst erreichen kann. WARN bedeutet, dass ein anderes Gerät, LAN, VPN oder Mesh-Netzwerk ihn erreichen könnte. UNKNOWN bedeutet, dass Port Pulse es nicht sicher einordnen konnte.')}</p>"
+        f"<p>{l10n_text('Port Pulse only explains what is listening. It does not block, open, close, or change ports.', 'Port Pulse erklärt nur, was lauscht. Es blockiert, öffnet, schließt oder verändert keine Ports.')}</p>"
         "</section>"
     )
 
@@ -444,22 +533,22 @@ def _port_table(entries):
     return f"""
       <section class="health-panel" aria-label="Port details">
         <div class="health-head">
-          <h2>Local Listening Ports</h2>
-          <span class="pill">Read-only local inspection</span>
+          <h2>{l10n_text('Local Listening Ports', 'Lokale lauschende Ports')}</h2>
+          <span class="pill">{l10n_text('Read-only local inspection', 'Nur lesende lokale Prüfung')}</span>
         </div>
         {_review_summary(entries)}
         <section class="table-shell" aria-label="Port table">
           <table>
             <thead>
               <tr>
-                <th>Protocol</th>
-                <th>State</th>
+                <th>{l10n_text('Protocol', 'Protokoll')}</th>
+                <th>{l10n_text('State', 'Zustand')}</th>
                 <th>Bind</th>
                 <th>Port</th>
-                <th>Severity</th>
-                <th>Exposure</th>
-                <th>Process</th>
-                <th>Plain-English help</th>
+                <th>{l10n_text('Severity', 'Schweregrad')}</th>
+                <th>{l10n_text('Exposure', 'Erreichbarkeit')}</th>
+                <th>{l10n_text('Process', 'Prozess')}</th>
+                <th>{l10n_text('Plain-English help', 'Einfache Erklärung')}</th>
               </tr>
             </thead>
             <tbody>
@@ -481,10 +570,10 @@ def _render(template_path, output_path, generated_at, previous_last_success, con
         "{{LAST_SUCCESS_AT}}": html.escape(previous_last_success),
         "{{OVERALL}}": html.escape(overall.upper()),
         "{{OVERALL_CLASS}}": html.escape(overall),
-        "{{RECOMMENDATION}}": html.escape(_recommendation(overall)),
+        "{{RECOMMENDATION}}": _recommendation(overall),
         "{{SUMMARY_CARDS}}": _summary_cards(entries),
         "{{PORT_TABLE}}": _port_table(entries),
-        "{{MESSAGES}}": "<p>No port refresh warnings.</p>",
+        "{{MESSAGES}}": f"<p>{l10n_text('No port refresh warnings.', 'Keine Port-Aktualisierungswarnungen.')}</p>",
     }
     html_text = template
     for key, value in replacements.items():
@@ -512,6 +601,10 @@ def generate_port_pulse(
         path = Path(output_path)
         if path.exists():
             html_text = path.read_text(encoding="utf-8")
-            html_text = html_text.replace("<p>No port refresh warnings.</p>", f"<p>{html.escape(f'Port refresh failed: {exc}')}</p>")
+            error = l10n_text(f"Port refresh failed: {exc}", f"Port-Aktualisierung fehlgeschlagen: {exc}")
+            html_text = html_text.replace(
+                f"<p>{l10n_text('No port refresh warnings.', 'Keine Port-Aktualisierungswarnungen.')}</p>",
+                f"<p>{error}</p>",
+            )
             path.write_text(html_text, encoding="utf-8")
         return False
