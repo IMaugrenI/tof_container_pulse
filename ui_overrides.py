@@ -109,7 +109,7 @@ CONTAINER_NAV_HTML = f"""
         <nav class=\"nav-strip\" id=\"{CONTAINER_NAV_MARKER}\" aria-label=\"Pulse Suite navigation\">
           <a class=\"nav-link active\" href=\"pulse.html\">Container</a>
           <a class=\"nav-link\" href=\"hardware.html\">Hardware</a>
-          <span class=\"nav-link disabled\">Ports</span>
+          <a class=\"nav-link\" href=\"ports.html\">Ports</a>
           <span class=\"nav-link disabled\">Storage</span>
           <span class=\"nav-link disabled\">Services</span>
           <span class=\"nav-link disabled\">Security</span>
@@ -136,9 +136,10 @@ def apply_soft_light_mode_overrides(output_path: str) -> None:
 def apply_container_suite_navigation(output_path: str) -> None:
     """Add Pulse Suite navigation to generated Container Pulse output.
 
-    Hardware Pulse already has native suite navigation in its template. This
-    helper only patches the generated Container Pulse HTML so both active pages
-    share the same page-jump affordance without rewriting the large template.
+    Hardware Pulse and Port Pulse have native suite navigation in their
+    templates. This helper patches the generated Container Pulse HTML so all
+    active pages share the same page-jump affordance without rewriting the
+    large template.
     """
 
     path = Path(output_path)
@@ -154,4 +155,19 @@ def apply_container_suite_navigation(output_path: str) -> None:
         return
 
     html = html.replace(anchor, f"{CONTAINER_NAV_HTML}\n{anchor}", 1)
+    path.write_text(html, encoding="utf-8")
+
+
+def apply_active_ports_navigation(output_path: str) -> None:
+    """Make the Ports navigation item clickable on generated active pages."""
+
+    path = Path(output_path)
+    if not path.exists():
+        return
+
+    html = path.read_text(encoding="utf-8")
+    html = html.replace(
+        '<span class="nav-link disabled" data-i18n="navPorts">Ports</span>',
+        '<a class="nav-link" href="ports.html" data-i18n="navPorts">Ports</a>',
+    )
     path.write_text(html, encoding="utf-8")

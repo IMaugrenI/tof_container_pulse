@@ -4,8 +4,13 @@ import webbrowser
 from pathlib import Path
 
 from hardware import generate_hardware_pulse
+from ports import generate_port_pulse
 from pulse import generate_pulse
-from ui_overrides import apply_container_suite_navigation, apply_soft_light_mode_overrides
+from ui_overrides import (
+    apply_active_ports_navigation,
+    apply_container_suite_navigation,
+    apply_soft_light_mode_overrides,
+)
 
 
 def open_output_in_browser(output_path: str) -> None:
@@ -35,9 +40,17 @@ def generate_suite(args) -> None:
         config_path=args.config,
         state_path=args.hardware_state_file,
     )
+    generate_port_pulse(
+        output_path=args.ports_output,
+        template_path=args.ports_template,
+        config_path=args.config,
+        state_path=args.ports_state_file,
+    )
     apply_soft_light_mode_overrides(args.output)
     apply_soft_light_mode_overrides(args.hardware_output)
+    apply_soft_light_mode_overrides(args.ports_output)
     apply_container_suite_navigation(args.output)
+    apply_active_ports_navigation(args.hardware_output)
 
 
 def main() -> int:
@@ -48,9 +61,12 @@ def main() -> int:
     parser.add_argument("--template", default="template.html", help="Path to the Container Pulse HTML template file.")
     parser.add_argument("--hardware-output", default="hardware.html", help="Where to write the generated Hardware Pulse HTML file.")
     parser.add_argument("--hardware-template", default="hardware_template.html", help="Path to the Hardware Pulse HTML template file.")
+    parser.add_argument("--ports-output", default="ports.html", help="Where to write the generated Port Pulse HTML file.")
+    parser.add_argument("--ports-template", default="ports_template.html", help="Path to the Port Pulse HTML template file.")
     parser.add_argument("--config", default=None, help="Optional path to a YAML config file.")
     parser.add_argument("--state-file", default=".pulse_state.json", help="Path to the local Container Pulse state file.")
     parser.add_argument("--hardware-state-file", default=".hardware_pulse_state.json", help="Path to the local Hardware Pulse state file.")
+    parser.add_argument("--ports-state-file", default=".port_pulse_state.json", help="Path to the local Port Pulse state file.")
     parser.add_argument(
         "--no-open",
         action="store_true",
