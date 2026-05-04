@@ -47,6 +47,19 @@ hardware_vram_critical_percent: 95
 # It does not run external scans and does not change firewall rules.
 port_command_timeout_seconds: 2
 
+# Optional Port Pulse allowlist.
+# Matching entries are shown as OK/allowed.
+# Use this for listeners that are expected on your host.
+# Empty by default because every machine is different.
+port_allowed_listeners: []
+# port_allowed_listeners:
+#   - protocol: tcp
+#     bind: 127.0.0.1
+#     port: 8080
+#   - protocol: tcp
+#     exposure: private-lan
+#     port: 22
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
