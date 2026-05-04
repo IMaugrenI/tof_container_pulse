@@ -6,9 +6,11 @@ from pathlib import Path
 from hardware import generate_hardware_pulse
 from ports import generate_port_pulse
 from pulse import generate_pulse
+from services import generate_services_pulse
 from storage import generate_storage_pulse
 from ui_overrides import (
     apply_active_ports_navigation,
+    apply_active_services_navigation,
     apply_active_storage_navigation,
     apply_container_suite_navigation,
     apply_generated_l10n,
@@ -55,19 +57,31 @@ def generate_suite(args) -> None:
         config_path=args.config,
         state_path=args.storage_state_file,
     )
+    generate_services_pulse(
+        output_path=args.services_output,
+        template_path=args.services_template,
+        config_path=args.config,
+        state_path=args.services_state_file,
+    )
     apply_soft_light_mode_overrides(args.output)
     apply_soft_light_mode_overrides(args.hardware_output)
     apply_soft_light_mode_overrides(args.ports_output)
     apply_soft_light_mode_overrides(args.storage_output)
+    apply_soft_light_mode_overrides(args.services_output)
     apply_container_suite_navigation(args.output)
     apply_active_ports_navigation(args.hardware_output)
     apply_active_storage_navigation(args.output)
     apply_active_storage_navigation(args.hardware_output)
     apply_active_storage_navigation(args.ports_output)
+    apply_active_services_navigation(args.output)
+    apply_active_services_navigation(args.hardware_output)
+    apply_active_services_navigation(args.ports_output)
+    apply_active_services_navigation(args.storage_output)
     apply_generated_l10n(args.output)
     apply_generated_l10n(args.hardware_output)
     apply_generated_l10n(args.ports_output)
     apply_generated_l10n(args.storage_output)
+    apply_generated_l10n(args.services_output)
 
 
 def main() -> int:
@@ -82,11 +96,14 @@ def main() -> int:
     parser.add_argument("--ports-template", default="ports_template.html", help="Path to the Port Pulse HTML template file.")
     parser.add_argument("--storage-output", default="storage.html", help="Where to write the generated Storage Pulse HTML file.")
     parser.add_argument("--storage-template", default="storage_template.html", help="Path to the Storage Pulse HTML template file.")
+    parser.add_argument("--services-output", default="services.html", help="Where to write the generated Services Pulse HTML file.")
+    parser.add_argument("--services-template", default="services_template.html", help="Path to the Services Pulse HTML template file.")
     parser.add_argument("--config", default=None, help="Optional path to a YAML config file.")
     parser.add_argument("--state-file", default=".pulse_state.json", help="Path to the local Container Pulse state file.")
     parser.add_argument("--hardware-state-file", default=".hardware_pulse_state.json", help="Path to the local Hardware Pulse state file.")
     parser.add_argument("--ports-state-file", default=".port_pulse_state.json", help="Path to the local Port Pulse state file.")
     parser.add_argument("--storage-state-file", default=".storage_pulse_state.json", help="Path to the local Storage Pulse state file.")
+    parser.add_argument("--services-state-file", default=".services_pulse_state.json", help="Path to the local Services Pulse state file.")
     parser.add_argument(
         "--no-open",
         action="store_true",
