@@ -1,10 +1,43 @@
+# Python/cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
 .env
+.env.*
 .venv/
 venv/
+
+# Local/private configuration
 config.yaml
+multi_host.yaml
+
+# Generated Pulse Suite HTML outputs
 pulse.html
+hardware.html
+ports.html
+storage.html
+services.html
+security.html
+
+# Generated local state files
 .pulse_state.json
+.hardware_pulse_state.json
+.port_pulse_state.json
+.storage_pulse_state.json
+.services_pulse_state.json
+.security_pulse_state.json
+
+# Logs and OS/editor state
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
