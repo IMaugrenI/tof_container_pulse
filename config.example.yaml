@@ -106,6 +106,20 @@ service_checks: []
 #     expected_status: 200
 #     allow_external: true
 
+# Security Pulse local review
+# Security Pulse reads local visibility signals only.
+# It does not change firewall rules, SSH settings, users, groups, services,
+# Fail2Ban state, Docker permissions, or system settings.
+# Some checks may show UNKNOWN when logs or tools are not readable without sudo.
+security_command_timeout_seconds: 1.5
+security_auth_log_max_lines: 600
+security_failed_login_warn_count: 5
+security_failed_login_critical_count: 20
+security_check_docker_socket: true
+security_check_auth_log: true
+security_check_fail2ban: true
+security_check_sessions: true
+
 # optional multi-host setup
 # leave hosts unset or empty to keep the normal single-host behavior
 # hosts:
