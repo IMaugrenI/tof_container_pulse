@@ -1,6 +1,28 @@
 # Pulse Suite quality checks
 
-Pulse Suite uses a small cross-platform smoke check to make sure the static dashboard generator stays healthy on Linux, macOS, and Windows.
+Pulse Suite uses two quality layers:
+
+1. targeted unit tests for stable parser and classification helpers
+2. a cross-platform smoke check to make sure the static dashboard generator stays healthy on Linux, macOS, and Windows
+
+## Unit tests
+
+Run:
+
+```bash
+pytest
+```
+
+Current unit tests cover stable helper behavior for:
+
+- platform parsing helpers
+- percentage and byte formatting helpers
+- port bind parsing and exposure classification
+- netstat listener parsing
+- storage threshold classification
+- security signal severity aggregation
+
+These tests intentionally avoid live host state. They should stay deterministic and should not require Docker, special system privileges, network access, or platform-specific services.
 
 ## Local smoke check
 
@@ -10,7 +32,7 @@ Run:
 python scripts/smoke_check.py
 ```
 
-The check performs only read-only validation:
+The check performs local validation:
 
 1. compile all Python files
 2. run `python run.py --once --no-open`
@@ -35,7 +57,14 @@ Expected generated UI markers:
 
 ## GitHub Actions
 
-The workflow `.github/workflows/smoke.yml` runs the same smoke check on:
+The workflow `.github/workflows/ci.yml` runs:
+
+- Ruff advisory check
+- Python compilation
+- unit tests through `pytest`
+- Docker image build check
+
+The workflow `.github/workflows/smoke.yml` runs the smoke check on:
 
 - Ubuntu latest
 - macOS latest
@@ -46,24 +75,27 @@ Python versions:
 - 3.11
 - 3.12
 
-## What the smoke check proves
+## What the checks prove
+
+The unit tests prove that selected pure parser/classification helpers keep their expected behavior.
 
 The smoke check proves that the suite can generate all six static pages on the tested operating systems and Python versions.
 
-It catches:
+Together they catch:
 
 - Python syntax errors
 - generator crashes
+- selected parser/classification regressions
 - missing generated pages
 - very small or malformed generated HTML files
 - real unreplaced template placeholders such as `{{TITLE}}`
 - missing platform/collector/read-only badges
 
-## What it does not prove
+## What they do not prove
 
-The smoke check is not a full browser visual test.
+These checks are not full browser visual tests.
 
-It does not prove:
+They do not prove:
 
 - pixel-perfect layout
 - mobile layout quality
@@ -75,18 +107,8 @@ Those require manual review or a later optional browser/screenshot test.
 
 ## Boundaries
 
-The smoke check does not require Docker to be running.
+The tests and smoke check do not require Docker to be running.
 
-It does not:
-
-- run sudo/admin elevation
-- change Docker
-- change firewall rules
-- change SSH settings
-- change users or groups
-- change services
-- change storage mounts
-- run external scans
-- auto-fix anything
+They do not perform host-changing operations. They only compile code, run deterministic helper tests, generate local static HTML, and validate generated file structure.
 
 If a platform cannot provide a specific signal, the dashboard should still render and show optional, unknown, or N/A instead of crashing.
