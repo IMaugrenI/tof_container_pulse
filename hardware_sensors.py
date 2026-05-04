@@ -32,10 +32,20 @@ DEFAULT_SENSOR_CONFIG = {
     "hardware_temperature_critical_celsius": 90.0,
     "hardware_fan_min_warn_rpm": 400.0,
     "hardware_fan_min_critical_rpm": 100.0,
+    "hardware_fan_zero_is_critical": False,
     "hardware_enable_gpu_tools": False,
     "hardware_sensor_command_timeout_seconds": 1.5,
     "hardware_vram_warn_percent": 80.0,
     "hardware_vram_critical_percent": 95.0,
+}
+
+STATE_SORT = {"critical": 0, "warn": 1, "unknown": 2, "ok": 3}
+CATEGORY_SORT = {
+    "temperature": 0,
+    "gpu_temperature": 1,
+    "fan": 2,
+    "gpu_usage": 3,
+    "vram": 4,
 }
 
 
@@ -72,7 +82,7 @@ def collect_hardware_sensors(config: dict | None = None) -> list[HardwareSensor]
     if bool(cfg.get("hardware_enable_gpu_tools", False)):
         sensors.extend(_collect_nvidia_smi_sensors(cfg))
 
-    return _dedupe_and_limit(sensors, int(cfg.get("hardware_sensor_max_rows", 32)))
+    return _dedupe_sort_and_limit(sensors, int(cfg.get("hardware_sensor_max_rows", 32)))
 
 
 def _read_text(path: Path) -> str | None:
@@ -112,11 +122,19 @@ def _temperature_state(celsius: float | None, cfg: dict) -> str:
 def _fan_state(rpm: float | None, cfg: dict) -> str:
     if rpm is None:
         return "unknown"
+    if rpm == 0 and not bool(cfg.get("hardware_fan_zero_is_critical", False)):
+        return "warn"
     if rpm <= float(cfg["hardware_fan_min_critical_rpm"]):
         return "critical"
     if rpm <= float(cfg["hardware_fan_min_warn_rpm"]):
         return "warn"
     return "ok"
+
+
+def _fan_note(rpm: float | None) -> str:
+    if rpm == 0:
+        return "Local hwmon fan sensor. 0 RPM can be normal on fan-stop systems."
+    return "Local hwmon fan sensor. Low RPM can be normal on some fan-stop systems."
 
 
 def _percent_state(percent: float | None, warn: float, critical: float) -> str:
@@ -183,7 +201,7 @@ def _collect_hwmon_fans(hwmon: Path, source_name: str, cfg: dict) -> list[Hardwa
                 category="fan",
                 value=f"{rpm:.0f} RPM",
                 state=state,
-                note="Local hwmon fan sensor. Low RPM can be normal on some fan-stop systems.",
+                note=_fan_note(rpm),
                 source=str(input_path),
             )
         )
@@ -308,10 +326,18 @@ def _parse_float(value: str) -> float | None:
         return None
 
 
-def _dedupe_and_limit(sensors: list[HardwareSensor], limit: int) -> list[HardwareSensor]:
+def _sensor_sort_key(sensor: HardwareSensor) -> tuple[int, int, str]:
+    return (
+        STATE_SORT.get(sensor.state, STATE_SORT["unknown"]),
+        CATEGORY_SORT.get(sensor.category, 99),
+        sensor.name.lower(),
+    )
+
+
+def _dedupe_sort_and_limit(sensors: list[HardwareSensor], limit: int) -> list[HardwareSensor]:
     seen: set[tuple[str, str, str]] = set()
     result: list[HardwareSensor] = []
-    for sensor in sensors:
+    for sensor in sorted(sensors, key=_sensor_sort_key):
         key = (sensor.name.lower(), sensor.category, sensor.source)
         if key in seen:
             continue
