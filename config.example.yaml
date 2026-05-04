@@ -45,6 +45,7 @@ hardware_vram_critical_percent: 95
 # Port Pulse local inspection
 # Port Pulse uses local read-only tools such as ss or netstat.
 # It does not run external scans and does not change firewall rules.
+# Plain-language service hints are best-effort labels for humans, not proof.
 port_command_timeout_seconds: 2
 
 # Optional Port Pulse allowlist.
