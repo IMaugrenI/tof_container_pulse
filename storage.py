@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from i18n_static import l10n_text
+from storage_disk_overview import render_disk_overview
 
 DEFAULT_STORAGE_CONFIG = {
     "refresh_seconds": 60,
@@ -634,7 +635,7 @@ def _render(template_path, output_path, generated_at, previous_last_success, con
         "{{OVERALL_CLASS}}": html.escape(overall),
         "{{RECOMMENDATION}}": _overall_recommendation(overall),
         "{{SUMMARY_CARDS}}": _summary_cards(entries),
-        "{{STORAGE_TABLE}}": _storage_table(entries),
+        "{{STORAGE_TABLE}}": f"{render_disk_overview()}\n\n{_storage_table(entries)}",
         "{{MESSAGES}}": f"<p>{l10n_text('No storage refresh warnings.', 'Keine Speicher-Aktualisierungswarnungen.')}</p>",
     }
     html_text = template
