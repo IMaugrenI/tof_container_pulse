@@ -73,6 +73,8 @@ class MountEntry:
     inode_used: int | None
     inode_total: int | None
     inode_percent: float | None
+    disk_level: str
+    inode_level: str
     severity: str
     note: str
 
@@ -254,6 +256,8 @@ def _collect_mount_entries(config):
                     inode_used=None,
                     inode_total=None,
                     inode_percent=None,
+                    disk_level="unknown",
+                    inode_level="unknown",
                     severity="unknown",
                     note=l10n_text(
                         "Usage could not be read for this mount.",
@@ -278,6 +282,8 @@ def _collect_mount_entries(config):
                 inode_used=inode_used,
                 inode_total=inode_total,
                 inode_percent=inode_percent,
+                disk_level=disk_level,
+                inode_level=inode_level,
                 severity=_entry_severity(disk_level, inode_level),
                 note=_note_for_entry(disk_level, inode_level),
             )
@@ -364,10 +370,8 @@ def _summary_cards(entries):
 
 
 def _mount_row(entry):
-    disk_level = _level_percent(entry.used_percent, DEFAULT_STORAGE_CONFIG["storage_disk_warn_percent"], DEFAULT_STORAGE_CONFIG["storage_disk_critical_percent"])
-    inode_level = _level_percent(entry.inode_percent, DEFAULT_STORAGE_CONFIG["storage_inode_warn_percent"], DEFAULT_STORAGE_CONFIG["storage_inode_critical_percent"])
-    disk_bar = _bar(l10n_text("Disk", "Speicher"), _format_percent(entry.used_percent), entry.used_percent, disk_level)
-    inode_bar = _bar(l10n_text("Inodes", "Inodes"), _format_percent(entry.inode_percent), entry.inode_percent, inode_level)
+    disk_bar = _bar(l10n_text("Disk", "Speicher"), _format_percent(entry.used_percent), entry.used_percent, entry.disk_level)
+    inode_bar = _bar(l10n_text("Inodes", "Inodes"), _format_percent(entry.inode_percent), entry.inode_percent, entry.inode_level)
     return (
         "<tr>"
         f"<td><code>{html.escape(entry.mount)}</code></td>"
