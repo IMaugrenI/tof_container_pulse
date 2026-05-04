@@ -60,6 +60,67 @@ SKIP_MOUNT_PREFIXES = (
     "/var/lib/containers/storage/overlay",
 )
 
+STORAGE_TABLE_STYLE = """
+<style id="storage-pulse-compact-table">
+  .storage-table {
+    min-width: 960px !important;
+    table-layout: fixed;
+  }
+  .storage-table th,
+  .storage-table td {
+    padding: 11px 12px;
+  }
+  .storage-path,
+  .storage-device {
+    display: block;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .storage-device {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    opacity: 0.86;
+  }
+  .storage-size {
+    display: grid;
+    gap: 4px;
+    min-width: 118px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+  .storage-size span {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .storage-size small {
+    color: var(--muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .storage-table .metric-row {
+    min-width: 180px;
+    grid-template-columns: 58px 46px minmax(70px, 1fr);
+    gap: 8px;
+  }
+  .storage-help {
+    min-width: 190px;
+    max-width: 260px;
+    line-height: 1.42;
+  }
+  @media (max-width: 980px) {
+    .storage-table {
+      min-width: 900px !important;
+    }
+  }
+</style>
+""".strip()
+
 
 @dataclass(frozen=True)
 class MountEntry:
@@ -325,6 +386,35 @@ def _format_inodes(used, total):
     return f"{used} / {total}"
 
 
+def _shorten_middle(value, max_len=34):
+    if len(value) <= max_len:
+        return value
+    head = max(8, max_len // 2 - 2)
+    tail = max(10, max_len - head - 3)
+    return f"{value[:head]}...{value[-tail:]}"
+
+
+def _path_block(primary, secondary):
+    primary_safe = html.escape(primary)
+    secondary_safe = html.escape(secondary)
+    primary_short = html.escape(_shorten_middle(primary, 32))
+    secondary_short = html.escape(_shorten_middle(secondary, 34))
+    return (
+        f"<code class='storage-path' title='{primary_safe}'>{primary_short}</code>"
+        f"<code class='storage-device' title='{secondary_safe}'>{secondary_short}</code>"
+    )
+
+
+def _size_block(entry):
+    return (
+        "<div class='storage-size'>"
+        f"<span><small>{l10n_text('Total', 'Gesamt')}</small><code>{html.escape(_bytes_to_gib(entry.total))}</code></span>"
+        f"<span><small>{l10n_text('Used', 'Belegt')}</small><code>{html.escape(_bytes_to_gib(entry.used))}</code></span>"
+        f"<span><small>{l10n_text('Free', 'Frei')}</small><code>{html.escape(_bytes_to_gib(entry.free))}</code></span>"
+        "</div>"
+    )
+
+
 def _bar(label_html, value_text, percent, level):
     width = "0%" if percent is None else f"{max(0.0, min(float(percent), 100.0)):.1f}%"
     return (
@@ -374,17 +464,14 @@ def _mount_row(entry):
     inode_bar = _bar(l10n_text("Inodes", "Inodes"), _format_percent(entry.inode_percent), entry.inode_percent, entry.inode_level)
     return (
         "<tr>"
-        f"<td><code>{html.escape(entry.mount)}</code></td>"
-        f"<td><code>{html.escape(entry.device)}</code></td>"
+        f"<td>{_path_block(entry.mount, entry.device)}</td>"
         f"<td><code>{html.escape(entry.fs_type)}</code></td>"
-        f"<td>{_bytes_to_gib(entry.total)}</td>"
-        f"<td>{_bytes_to_gib(entry.used)}</td>"
-        f"<td>{_bytes_to_gib(entry.free)}</td>"
+        f"<td>{_size_block(entry)}</td>"
         f"<td>{disk_bar}</td>"
         f"<td>{inode_bar}</td>"
-        f"<td>{html.escape(_format_inodes(entry.inode_used, entry.inode_total))}</td>"
+        f"<td><code>{html.escape(_format_inodes(entry.inode_used, entry.inode_total))}</code></td>"
         f"<td><span class='sev-badge sev-{html.escape(entry.severity)}'>{html.escape(entry.severity.upper())}</span></td>"
-        f"<td>{entry.note}</td>"
+        f"<td class='storage-help'>{entry.note}</td>"
         "</tr>"
     )
 
@@ -437,6 +524,7 @@ def _storage_table(entries):
 
     rows = "\n".join(_mount_row(entry) for entry in entries)
     return f"""
+      {STORAGE_TABLE_STYLE}
       <section class="health-panel" aria-label="Storage details">
         <div class="health-head">
           <h2>{l10n_text('Local Filesystems', 'Lokale Dateisysteme')}</h2>
@@ -444,19 +532,26 @@ def _storage_table(entries):
         </div>
         {_plain_summary(entries)}
         <section class="table-shell" aria-label="Storage table">
-          <table>
+          <table class="storage-table">
+            <colgroup>
+              <col style="width: 23%">
+              <col style="width: 8%">
+              <col style="width: 13%">
+              <col style="width: 15%">
+              <col style="width: 15%">
+              <col style="width: 9%">
+              <col style="width: 8%">
+              <col style="width: 19%">
+            </colgroup>
             <thead>
               <tr>
-                <th>{l10n_text('Mount', 'Mount')}</th>
-                <th>{l10n_text('Device', 'Gerät')}</th>
+                <th>{l10n_text('Mount / device', 'Mount / Gerät')}</th>
                 <th>{l10n_text('Type', 'Typ')}</th>
-                <th>{l10n_text('Total', 'Gesamt')}</th>
-                <th>{l10n_text('Used', 'Belegt')}</th>
-                <th>{l10n_text('Free', 'Frei')}</th>
-                <th>{l10n_text('Disk %', 'Speicher %')}</th>
-                <th>{l10n_text('Inode %', 'Inode %')}</th>
+                <th>{l10n_text('Size', 'Größe')}</th>
+                <th>{l10n_text('Disk usage', 'Speichernutzung')}</th>
+                <th>{l10n_text('Inode usage', 'Inode-Nutzung')}</th>
                 <th>{l10n_text('Inodes', 'Inodes')}</th>
-                <th>{l10n_text('Severity', 'Schweregrad')}</th>
+                <th>{l10n_text('Severity', 'Status')}</th>
                 <th>{l10n_text('Plain-English help', 'Einfache Erklärung')}</th>
               </tr>
             </thead>
