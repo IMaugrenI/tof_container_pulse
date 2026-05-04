@@ -70,9 +70,9 @@ PULSE_PAGES: tuple[PulsePage, ...] = (
         key="security",
         title="Security Pulse",
         output_path="security.html",
-        collector_module="security",
+        collector_module="security_v3",
         status="active",
-        summary="Local security signals, login/session hints, Fail2Ban visibility, and Docker socket review hints.",
+        summary="Local safety signals, Docker audit hints, SSH hygiene, firewall visibility, systemd failures, and advisory review notes.",
     ),
 )
 
