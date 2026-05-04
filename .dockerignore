@@ -9,13 +9,29 @@ __pycache__/
 .venv/
 venv/
 
-# Local/private configuration and generated runtime files
+# Local/private configuration
 .env
 .env.*
 config.yaml
 multi_host.yaml
+
+# Generated Pulse Suite HTML outputs
 pulse.html
+hardware.html
+ports.html
+storage.html
+services.html
+security.html
+
+# Generated local state files
 .pulse_state.json
+.hardware_pulse_state.json
+.port_pulse_state.json
+.storage_pulse_state.json
+.services_pulse_state.json
+.security_pulse_state.json
+
+# Logs
 *.log
 
 # Git/editor/OS state
