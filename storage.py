@@ -1,6 +1,7 @@
 import html
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,8 @@ PSEUDO_FS_TYPES = {
     "devpts",
     "devtmpfs",
     "efivarfs",
+    "fuse.portal",
+    "fuse.gvfsd-fuse",
     "fusectl",
     "hugetlbfs",
     "mqueue",
@@ -44,6 +47,16 @@ PSEUDO_FS_TYPES = {
     "squashfs",
     "sysfs",
     "tracefs",
+}
+
+NO_INODE_FS_TYPES = {
+    "exfat",
+    "fuseblk",
+    "iso9660",
+    "msdos",
+    "ntfs",
+    "ntfs3",
+    "vfat",
 }
 
 TMPFS_TYPES = {"tmpfs"}
@@ -108,6 +121,11 @@ STORAGE_TABLE_STYLE = """
     grid-template-columns: 58px 46px minmax(70px, 1fr);
     gap: 8px;
   }
+  .metric-na .metric-fill {
+    background: var(--unknown);
+    opacity: 0.28;
+    box-shadow: none;
+  }
   .storage-help {
     min-width: 190px;
     max-width: 260px;
@@ -134,6 +152,7 @@ class MountEntry:
     inode_used: int | None
     inode_total: int | None
     inode_percent: float | None
+    inode_supported: bool
     disk_level: str
     inode_level: str
     severity: str
@@ -205,7 +224,15 @@ def _read_mounts():
     return mounts
 
 
+def _is_desktop_runtime_mount(mount):
+    """Return True for per-user desktop helper mounts that are not storage health targets."""
+
+    return bool(re.match(r"^/run/user/\d+/(doc|gvfs)(/|$)", mount))
+
+
 def _should_skip_mount(device, mount, fs_type, config):
+    if _is_desktop_runtime_mount(mount):
+        return True
     if fs_type in PSEUDO_FS_TYPES:
         return True
     if fs_type in TMPFS_TYPES and not bool(config.get("storage_include_tmpfs", False)):
@@ -221,9 +248,9 @@ def _should_skip_mount(device, mount, fs_type, config):
     return False
 
 
-def _level_percent(value, warn, critical):
+def _level_percent(value, warn, critical, *, missing_as="unknown"):
     if value is None:
-        return "unknown"
+        return missing_as
     if value >= float(critical):
         return "critical"
     if value >= float(warn):
@@ -258,7 +285,13 @@ def _collect_usage(mount):
     return total, used, free, used_percent, inode_used, inode_total, inode_percent
 
 
-def _note_for_entry(disk_level, inode_level):
+def _inode_supported(fs_type, inode_percent):
+    if fs_type in NO_INODE_FS_TYPES and inode_percent is None:
+        return False
+    return True
+
+
+def _note_for_entry(disk_level, inode_level, fs_type, inode_supported):
     if disk_level == "critical":
         return l10n_text(
             "Disk space is critically high. Free space soon or move data before writes start failing.",
@@ -278,6 +311,11 @@ def _note_for_entry(disk_level, inode_level):
         return l10n_text(
             "Inode usage is high. This usually means many small files. Review caches, sessions, logs, or generated files.",
             "Die Inode-Nutzung ist hoch. Das bedeutet meist viele kleine Dateien. Prüfe Caches, Sessions, Logs oder generierte Dateien.",
+        )
+    if not inode_supported:
+        return l10n_text(
+            f"Looks healthy. This filesystem type ({fs_type}) does not report normal Linux inode usage, so inodes are shown as N/A.",
+            f"Sieht gesund aus. Dieser Dateisystemtyp ({fs_type}) meldet keine normale Linux-Inode-Nutzung, deshalb werden Inodes als N/A angezeigt.",
         )
     if disk_level == "unknown" or inode_level == "unknown":
         return l10n_text(
@@ -317,20 +355,27 @@ def _collect_mount_entries(config):
                     inode_used=None,
                     inode_total=None,
                     inode_percent=None,
+                    inode_supported=True,
                     disk_level="unknown",
                     inode_level="unknown",
                     severity="unknown",
                     note=l10n_text(
-                        "Usage could not be read for this mount.",
-                        "Die Nutzung konnte für diesen Mount nicht gelesen werden.",
+                        "Usage could not be read for this mount. If this is a virtual desktop mount, it can usually be ignored.",
+                        "Die Nutzung konnte für diesen Mount nicht gelesen werden. Wenn das ein virtueller Desktop-Mount ist, kann er meistens ignoriert werden.",
                     ),
                 )
             )
             continue
 
         total, used, free, used_percent, inode_used, inode_total, inode_percent = usage
+        inode_supported = _inode_supported(fs_type, inode_percent)
         disk_level = _level_percent(used_percent, config["storage_disk_warn_percent"], config["storage_disk_critical_percent"])
-        inode_level = _level_percent(inode_percent, config["storage_inode_warn_percent"], config["storage_inode_critical_percent"])
+        inode_level = _level_percent(
+            inode_percent,
+            config["storage_inode_warn_percent"],
+            config["storage_inode_critical_percent"],
+            missing_as="ok" if not inode_supported else "unknown",
+        )
         entries.append(
             MountEntry(
                 device=device,
@@ -343,10 +388,11 @@ def _collect_mount_entries(config):
                 inode_used=inode_used,
                 inode_total=inode_total,
                 inode_percent=inode_percent,
+                inode_supported=inode_supported,
                 disk_level=disk_level,
                 inode_level=inode_level,
                 severity=_entry_severity(disk_level, inode_level),
-                note=_note_for_entry(disk_level, inode_level),
+                note=_note_for_entry(disk_level, inode_level, fs_type, inode_supported),
             )
         )
 
@@ -376,7 +422,17 @@ def _format_percent(value):
     return f"{value:.1f}%"
 
 
-def _format_inodes(used, total):
+def _format_inode_percent(entry):
+    if not entry.inode_supported:
+        return "N/A"
+    return _format_percent(entry.inode_percent)
+
+
+def _format_inodes(entry):
+    if not entry.inode_supported:
+        return "N/A"
+    used = entry.inode_used
+    total = entry.inode_total
     if used is None or total is None:
         return "-"
     if total >= 1_000_000:
@@ -417,8 +473,9 @@ def _size_block(entry):
 
 def _bar(label_html, value_text, percent, level):
     width = "0%" if percent is None else f"{max(0.0, min(float(percent), 100.0)):.1f}%"
+    level_class = "na" if value_text == "N/A" else level
     return (
-        f"<div class='metric-row metric-{html.escape(level)}'>"
+        f"<div class='metric-row metric-{html.escape(level_class)}'>"
         f"<span class='metric-label'>{label_html}</span>"
         f"<span class='metric-value'>{html.escape(value_text)}</span>"
         f"<span class='metric-track'><span class='metric-fill' style='width:{width}'></span></span>"
@@ -461,7 +518,7 @@ def _summary_cards(entries):
 
 def _mount_row(entry):
     disk_bar = _bar(l10n_text("Disk", "Speicher"), _format_percent(entry.used_percent), entry.used_percent, entry.disk_level)
-    inode_bar = _bar(l10n_text("Inodes", "Inodes"), _format_percent(entry.inode_percent), entry.inode_percent, entry.inode_level)
+    inode_bar = _bar(l10n_text("Inodes", "Inodes"), _format_inode_percent(entry), entry.inode_percent, entry.inode_level)
     return (
         "<tr>"
         f"<td>{_path_block(entry.mount, entry.device)}</td>"
@@ -469,7 +526,7 @@ def _mount_row(entry):
         f"<td>{_size_block(entry)}</td>"
         f"<td>{disk_bar}</td>"
         f"<td>{inode_bar}</td>"
-        f"<td><code>{html.escape(_format_inodes(entry.inode_used, entry.inode_total))}</code></td>"
+        f"<td><code>{html.escape(_format_inodes(entry))}</code></td>"
         f"<td><span class='sev-badge sev-{html.escape(entry.severity)}'>{html.escape(entry.severity.upper())}</span></td>"
         f"<td class='storage-help'>{entry.note}</td>"
         "</tr>"
@@ -505,6 +562,7 @@ def _plain_summary(entries):
         f"<p><strong>{l10n_text('Plain meaning', 'Einfache Bedeutung')}</strong>: "
         f"{l10n_text('Disk usage shows how full a filesystem is. Inodes show whether there are too many small files.', 'Speichernutzung zeigt, wie voll ein Dateisystem ist. Inodes zeigen, ob es zu viele kleine Dateien gibt.')}</p>"
         f"<p>{l10n_text('Summary', 'Zusammenfassung')}: {counts['total']} Mounts · OK {counts['ok']} · WARN {counts['warn']} · CRITICAL {counts['critical']} · UNKNOWN {counts['unknown']}</p>"
+        f"<p>{l10n_text('Virtual desktop and system helper mounts are hidden from this overview so normal users see the real storage targets first.', 'Virtuelle Desktop- und System-Hilfsmounts werden in dieser Übersicht ausgeblendet, damit normale Nutzer zuerst die echten Speicherziele sehen.')}</p>"
         f"<p>{l10n_text('Storage Pulse only observes. It does not delete files, clean caches, repair disks, or change mounts.', 'Storage Pulse beobachtet nur. Es löscht keine Dateien, leert keine Caches, repariert keine Platten und ändert keine Mounts.')}</p>"
         "</section>"
     )
