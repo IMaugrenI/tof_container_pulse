@@ -1,6 +1,5 @@
 import html
 import json
-import os
 import socket
 import subprocess
 from dataclasses import dataclass
@@ -15,6 +14,8 @@ DEFAULT_SECURITY_CONFIG = {
     "security_auth_log_max_lines": 600,
     "security_failed_login_warn_count": 5,
     "security_failed_login_critical_count": 20,
+    "security_session_warn_count": 4,
+    "security_session_critical_count": 10,
     "security_check_docker_socket": True,
     "security_check_auth_log": True,
     "security_check_fail2ban": True,
@@ -28,6 +29,16 @@ AUTH_LOG_CANDIDATES = (
     "/var/log/auth.log",
     "/var/log/secure",
 )
+
+STATE_LABELS = {
+    "ok": ("ok", "ok"),
+    "active": ("active", "aktiv"),
+    "optional": ("optional", "optional"),
+    "present": ("present", "vorhanden"),
+    "review": ("review", "prüfen"),
+    "critical": ("critical", "kritisch"),
+    "unknown": ("unknown", "unbekannt"),
+}
 
 
 @dataclass(frozen=True)
@@ -91,12 +102,16 @@ def _run_command(command, timeout):
         return 1, "", str(exc)
 
 
+def _state_text(state):
+    return l10n_text(*STATE_LABELS.get(state, (state, state)))
+
+
 def _entry(name_en, name_de, area_en, area_de, value, state, severity, note_en, note_de):
     return SecurityEntry(
         name=l10n_text(name_en, name_de),
         area=l10n_text(area_en, area_de),
         value=str(value),
-        state=l10n_text(state, state),
+        state=_state_text(state),
         severity=severity,
         note=l10n_text(note_en, note_de),
     )
@@ -129,8 +144,13 @@ def _check_sessions(config):
             "Active sessions could not be read without extra permissions.",
             "Aktive Sitzungen konnten ohne zusätzliche Rechte nicht gelesen werden.",
         )
+
     lines = [line for line in stdout.splitlines() if line.strip()]
-    if not lines:
+    session_count = len(lines)
+    warn_at = int(config.get("security_session_warn_count", 4))
+    critical_at = int(config.get("security_session_critical_count", 10))
+
+    if session_count <= 0:
         return _entry(
             "Active login sessions",
             "Aktive Login-Sitzungen",
@@ -142,16 +162,40 @@ def _check_sessions(config):
             "No active terminal login sessions were reported.",
             "Es wurden keine aktiven Terminal-Login-Sitzungen gemeldet.",
         )
+    if session_count >= critical_at:
+        return _entry(
+            "Active login sessions",
+            "Aktive Login-Sitzungen",
+            "Login",
+            "Login",
+            session_count,
+            "critical",
+            "critical",
+            "Many terminal login sessions are active. Review whether this is expected. No session was changed.",
+            "Viele Terminal-Login-Sitzungen sind aktiv. Prüfe, ob das erwartet ist. Es wurde keine Sitzung verändert.",
+        )
+    if session_count >= warn_at:
+        return _entry(
+            "Active login sessions",
+            "Aktive Login-Sitzungen",
+            "Login",
+            "Login",
+            session_count,
+            "review",
+            "warn",
+            "Several terminal login sessions are active. This can be normal, but review if unexpected.",
+            "Mehrere Terminal-Login-Sitzungen sind aktiv. Das kann normal sein, sollte aber geprüft werden, falls unerwartet.",
+        )
     return _entry(
         "Active login sessions",
         "Aktive Login-Sitzungen",
         "Login",
         "Login",
-        len(lines),
-        "review",
-        "warn",
-        "One or more terminal login sessions are active. This can be normal if you are logged in, but review if unexpected.",
-        "Eine oder mehrere Terminal-Login-Sitzungen sind aktiv. Das kann normal sein, wenn du eingeloggt bist; prüfe es, falls unerwartet.",
+        session_count,
+        "active",
+        "ok",
+        "A small number of terminal login sessions is active. This is normal when you are logged in locally or using a terminal.",
+        "Eine kleine Anzahl Terminal-Login-Sitzungen ist aktiv. Das ist normal, wenn du lokal angemeldet bist oder ein Terminal nutzt.",
     )
 
 
@@ -179,8 +223,8 @@ def _check_auth_log(config):
             "Login",
             "Login",
             "not found",
-            "unknown",
-            "unknown",
+            "optional",
+            "ok",
             "No common auth log file was found. This is normal on some distributions or restricted environments.",
             "Keine typische Auth-Log-Datei gefunden. Das ist auf manchen Distributionen oder eingeschränkten Umgebungen normal.",
         )
@@ -239,8 +283,8 @@ def _check_fail2ban(config):
             "Protection",
             "Schutz",
             "not installed",
-            "unknown",
-            "unknown",
+            "optional",
+            "ok",
             "Fail2Ban was not detected. This is not automatically bad; some systems use other protection layers.",
             "Fail2Ban wurde nicht erkannt. Das ist nicht automatisch schlecht; manche Systeme nutzen andere Schutzebenen.",
         )
@@ -284,7 +328,7 @@ def _check_docker_socket(config):
             "Local access",
             "Lokaler Zugriff",
             "not found",
-            "ok",
+            "optional",
             "ok",
             "Docker socket was not found at the common path. Nothing to review here for this check.",
             "Der Docker-Socket wurde am üblichen Pfad nicht gefunden. Für diesen Check gibt es hier nichts zu prüfen.",
@@ -299,10 +343,10 @@ def _check_docker_socket(config):
             "Local access",
             "Lokaler Zugriff",
             "exists",
-            "review",
-            "warn",
-            "Docker socket exists but its permissions could not be read. Review who can access Docker locally.",
-            "Der Docker-Socket existiert, aber seine Rechte konnten nicht gelesen werden. Prüfe, wer lokal auf Docker zugreifen kann.",
+            "unknown",
+            "unknown",
+            "Docker socket exists but its permissions could not be read. Review who can access Docker locally if needed.",
+            "Der Docker-Socket existiert, aber seine Rechte konnten nicht gelesen werden. Prüfe bei Bedarf, wer lokal auf Docker zugreifen kann.",
         )
     if stat.st_mode & 0o002:
         severity = "critical"
@@ -310,10 +354,10 @@ def _check_docker_socket(config):
         note_en = "Docker socket appears world-writable. Review local permissions urgently. No change was made."
         note_de = "Der Docker-Socket wirkt für alle schreibbar. Prüfe lokale Rechte dringend. Es wurde nichts geändert."
     else:
-        severity = "warn"
-        state = "review"
-        note_en = "Docker socket exists. This is normal on Docker hosts, but users with access can control Docker. Review group membership."
-        note_de = "Der Docker-Socket existiert. Das ist auf Docker-Hosts normal, aber Nutzer mit Zugriff können Docker steuern. Prüfe Gruppenmitgliedschaften."
+        severity = "ok"
+        state = "present"
+        note_en = "Docker socket exists. This is normal on Docker hosts. Users with Docker access can control Docker, so review group membership during normal maintenance."
+        note_de = "Der Docker-Socket existiert. Das ist auf Docker-Hosts normal. Nutzer mit Docker-Zugriff können Docker steuern; prüfe Gruppenmitgliedschaften bei normaler Wartung."
     return _entry(
         "Docker socket",
         "Docker-Socket",
