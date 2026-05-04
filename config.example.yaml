@@ -64,6 +64,10 @@ port_allowed_listeners: []
 # Storage Pulse local inspection
 # Storage Pulse reads local mount usage and inode usage.
 # It does not delete files, run cleanup, repair disks, or change mounts.
+# Virtual desktop helper mounts like /run/user/*/doc and /run/user/*/gvfs
+# are hidden from the normal overview because they are not real storage targets.
+# Filesystems without normal Linux inode reporting, such as vfat/EFI, show
+# inode values as N/A instead of creating an UNKNOWN storage warning.
 storage_disk_warn_percent: 80
 storage_disk_critical_percent: 90
 storage_inode_warn_percent: 80
