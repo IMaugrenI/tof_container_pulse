@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import compileall
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -25,6 +26,12 @@ EXPECTED_HTML = (
     "services.html",
     "security.html",
 )
+
+# Match the suite's real template placeholders, such as {{TITLE}}, {{ROWS}},
+# {{OVERALL_CLASS}}, or {{REFRESH_SECONDS}}. Do not flag arbitrary braces like
+# Docker format strings that may appear inside diagnostic text, for example
+# {{json .}} on platforms where Docker returns command context in an error.
+TEMPLATE_PLACEHOLDER_RE = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
 
 
 def fail(message: str) -> int:
@@ -66,8 +73,9 @@ def validate_html_file(path: Path) -> list[str]:
         errors.append(f"missing doctype: {path}")
     if "</html>" not in lowered:
         errors.append(f"missing closing html tag: {path}")
-    if "{{" in content or "}}" in content:
-        errors.append(f"unrendered template placeholder found: {path}")
+    match = TEMPLATE_PLACEHOLDER_RE.search(content)
+    if match:
+        errors.append(f"unrendered template placeholder found in {path}: {match.group(0)}")
     return errors
 
 
