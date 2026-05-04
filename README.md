@@ -100,7 +100,7 @@ This repo is not a control plane, not a cloud service, not a time-series databas
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - Docker CLI in `PATH` for Container Pulse Docker details
 - Docker daemon or Docker Desktop running for live Docker container data
 
