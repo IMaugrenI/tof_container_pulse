@@ -4,6 +4,7 @@ import webbrowser
 from pathlib import Path
 
 from hardware_xplat import generate_hardware_pulse
+from light_mode_contrast import apply_light_panel_contrast
 from ports_xplat import generate_port_pulse
 from pulse import generate_pulse
 from security_xplat import generate_security_pulse
@@ -99,6 +100,12 @@ def generate_suite(args) -> None:
     apply_platform_badges(args.storage_output, "storage")
     apply_platform_badges(args.services_output, "services")
     apply_platform_badges(args.security_output, "security")
+    apply_light_panel_contrast(args.output)
+    apply_light_panel_contrast(args.hardware_output)
+    apply_light_panel_contrast(args.ports_output)
+    apply_light_panel_contrast(args.storage_output)
+    apply_light_panel_contrast(args.services_output)
+    apply_light_panel_contrast(args.security_output)
     apply_generated_l10n(args.output)
     apply_generated_l10n(args.hardware_output)
     apply_generated_l10n(args.ports_output)
