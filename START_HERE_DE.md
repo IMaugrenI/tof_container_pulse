@@ -81,11 +81,25 @@ python3 run.py --watch 60
 
 Beenden mit `Ctrl+C`.
 
-## Qualitätsprüfung
+## Wenn der erste Lauf scheitert
+
+Führe den eingebauten Smoke-Check aus. Er nutzt denselben Generierungsweg ohne Browseröffnung und prüft, ob alle sechs HTML-Seiten tatsächlich erzeugt wurden.
+
+Linux/macOS:
 
 ```bash
-python scripts/smoke_check.py
+python3 scripts/smoke_check.py
 ```
+
+Windows PowerShell:
+
+```powershell
+py scripts/smoke_check.py
+```
+
+Wenn der Check fehlschlägt, ist der erste ausgegebene Fehler der sinnvolle Ausgangspunkt. Fehlendes Docker darf die Nicht-Docker-Seiten nicht daran hindern, zu rendern.
+
+## Qualitätsprüfung
 
 Derselbe Smoke-Pfad läuft in GitHub Actions auf Linux, macOS und Windows.
 
