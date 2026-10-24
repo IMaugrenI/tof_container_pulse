@@ -36,11 +36,11 @@ The current suite generates:
 - `services.html` — Services Pulse
 - `security.html` — Security Pulse
 
-Each generated page shows clear badges near the navigation:
+Each generated page shows a small, human-readable context strip near the navigation:
 
-- **Platform** — Linux, macOS, or Windows context
-- **Collector** — Deep, Baseline, Configured, or Docker CLI
-- **Mode** — Read-only
+- **Computer** — the current operating-system context
+- **View** — whether the page can show a detailed or basic view on this platform
+- **Nothing is changed** — a reminder that Pulse only observes
 
 ## Platform support
 
@@ -187,7 +187,7 @@ Run the same smoke check locally that GitHub Actions uses:
 python scripts/smoke_check.py
 ```
 
-The smoke check compiles Python files, generates all six HTML pages, verifies that pages look rendered, and checks that platform/collector/read-only badges are present.
+The smoke check compiles Python files, generates all six HTML pages, verifies that pages look rendered, and checks that the human-readable computer/view/no-change badges are present.
 
 See `QUALITY.md` for details.
 
@@ -251,12 +251,16 @@ hosts:
 
 In multi-host mode, Container Pulse keeps the same logic and style, but adds a `Host` column and merges all configured Docker contexts into one page.
 
-## Severity model
+## What the status means
 
-- `ok` = running or within thresholds
-- `warn` = should be reviewed
-- `critical` = important problem signal
-- `unknown` = state or live data could not be determined cleanly
+The normal UI translates the internal status model into plain language:
+
+- **Running / OK** — nothing currently stands out
+- **Check** — worth looking at when you have a moment
+- **Needs attention** — an important signal should be reviewed
+- **Unknown / N/A** — Pulse could not determine that value cleanly
+
+Pulse does not act on these states automatically. It only shows them.
 
 ## Local path and safety note
 
