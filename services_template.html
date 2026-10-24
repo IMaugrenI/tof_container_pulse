@@ -152,9 +152,35 @@
       .summary-grid { grid-template-columns: 1fr; }
       .table-shell { border-radius: 16px; }
     }
+    .pulse-skip-link {
+      position:absolute;
+      left:16px;
+      top:-64px;
+      z-index:40;
+      padding:10px 14px;
+      border-radius:10px;
+      background:var(--teal);
+      color:var(--bg-0);
+      font-weight:750;
+      text-decoration:none;
+    }
+    .pulse-skip-link:focus { top:16px; }
+    a:focus-visible, button:focus-visible {
+      outline:2px solid var(--cyan);
+      outline-offset:3px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after {
+        transition-duration:.001ms !important;
+        animation-duration:.001ms !important;
+        animation-iteration-count:1 !important;
+        scroll-behavior:auto !important;
+      }
+    }
   </style>
 </head>
 <body>
+  <a class="pulse-skip-link" href="#main-content">Zum Inhalt / Skip to content</a>
   <div class="wrap">
     <header class="hero" aria-label="Services Pulse overview">
       <div class="brand">
@@ -182,7 +208,7 @@
       </div>
     </header>
 
-    <main class="panel">
+    <main class="panel" id="main-content">
       <section class="topline" aria-label="Dashboard metadata">
         <div>
           <p class="meta"><span data-i18n="generated">Generated</span>: {{GENERATED_AT}}<br><span data-i18n="previousUpdate">Previous successful update</span>: {{LAST_SUCCESS_AT}}</p>
