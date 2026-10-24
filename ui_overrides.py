@@ -19,31 +19,31 @@ PLATFORM_BADGE_MARKER = "tof-platform-badges"
 SOFT_LIGHT_STYLE = f"""
 <style id=\"{SOFT_LIGHT_STYLE_ID}\">
   body.light {{
-    --bg-0: #d7e4ef;
-    --bg-1: #c8d8e7;
-    --bg-2: #edf4f8;
-    --panel: rgba(239, 246, 250, 0.88);
-    --panel-soft: rgba(229, 239, 246, 0.78);
-    --panel-softer: rgba(221, 234, 242, 0.82);
-    --panel-line: rgba(54, 86, 111, 0.22);
-    --text: #172435;
-    --text-strong: #0b1522;
-    --code-text: #18314a;
-    --muted: #53677c;
-    --muted-2: #718294;
-    --teal: #0f766e;
-    --cyan: #0b6b8f;
-    --shadow: rgba(15, 23, 42, 0.18);
-    --grid-line: rgba(54, 86, 111, 0.055);
-    --hero-line-a: rgba(54, 86, 111, 0.18);
-    --hero-line-b: rgba(37, 99, 235, 0.10);
-    --glow-a: rgba(20, 184, 166, 0.13);
-    --glow-b: rgba(37, 99, 235, 0.10);
-    --glow-c: rgba(20, 184, 166, 0.08);
+    --bg-0: #efe9df;
+    --bg-1: #f6f1e8;
+    --bg-2: #fbf8f2;
+    --panel: rgba(255,255,255,.72);
+    --panel-soft: rgba(255,255,255,.52);
+    --panel-softer: rgba(246,241,232,.82);
+    --panel-line: rgba(50,40,28,.12);
+    --text: #211d18;
+    --text-strong: #17130f;
+    --code-text: #3c342b;
+    --muted: #6f675e;
+    --muted-2: #8a8177;
+    --teal: #9b7135;
+    --cyan: #7f591f;
+    --shadow: rgba(52,41,28,.12);
+    --grid-line: rgba(50,40,28,.035);
+    --hero-line-a: rgba(155,113,53,.16);
+    --hero-line-b: rgba(155,113,53,.08);
+    --glow-a: rgba(155,113,53,.10);
+    --glow-b: rgba(155,113,53,.05);
+    --glow-c: rgba(155,113,53,.035);
   }}
 
   body.light .pulse-word {{
-    color: #0f766e;
+    color: #9b7135;
     text-shadow: none;
   }}
 
@@ -74,12 +74,12 @@ SOFT_LIGHT_STYLE = f"""
   }}
 
   .nav-link:hover {{
-    border-color: rgba(54, 243, 211, 0.42);
+    border-color: rgba(155,113,53,.28);
     transform: translateY(-1px);
   }}
 
   .nav-link.active {{
-    border-color: rgba(54, 243, 211, 0.58);
+    border-color: rgba(155,113,53,.40);
     color: var(--teal);
   }}
 
@@ -101,12 +101,12 @@ SOFT_LIGHT_STYLE = f"""
   body.light .pill,
   body.light .control-button,
   body.light .nav-link {{
-    background-color: rgba(232, 241, 247, 0.78);
+    background-color: rgba(255,255,255,.52);
   }}
 
   body.light .table-shell,
   body.light .metric-row {{
-    background: rgba(221, 234, 242, 0.76);
+    background: rgba(246,241,232,.78);
   }}
 </style>
 """.strip()
@@ -143,7 +143,7 @@ PLATFORM_BADGE_STYLE = f"""
   .platform-badge-readonly strong {{ color: var(--teal); }}
   .platform-badge-deep strong {{ color: var(--green); }}
   .platform-badge-baseline strong {{ color: var(--yellow); }}
-  body.light .platform-badge {{ background-color: rgba(232, 241, 247, 0.78); }}
+  body.light .platform-badge {{ background-color: rgba(255,255,255,.52); }}
   @media (max-width: 980px) {{
     .platform-badges {{ justify-content: flex-start; }}
   }}
@@ -195,14 +195,14 @@ CONTAINER_NAV_HTML = f"""
 def _collector_mode(page_key: str) -> tuple[str, str, str]:
     family = os_family()
     if page_key == "container":
-        return "Docker CLI", "Docker CLI", "ok"
+        return "Current status", "Aktueller Zustand", "ok"
     if page_key == "services":
-        return "Configured", "Konfiguriert", "ok"
+        return "Chosen services", "Ausgewählte Dienste", "ok"
     if page_key in {"hardware", "ports", "storage", "security"}:
         if family == "linux":
-            return "Deep", "Tief", "deep"
-        return "Baseline", "Basis", "baseline"
-    return "Unknown", "Unbekannt", "unknown"
+            return "Detailed view", "Detaillierte Ansicht", "deep"
+        return "Basic view", "Grundansicht", "baseline"
+    return "Not available", "Nicht verfügbar", "unknown"
 
 
 def _platform_badges_html(page_key: str) -> str:
@@ -213,9 +213,9 @@ def _platform_badges_html(page_key: str) -> str:
     safe_collector_kind = html.escape(collector_kind)
     return f"""
         <div class=\"platform-badges\" id=\"{PLATFORM_BADGE_MARKER}\" aria-label=\"Platform and collector mode\">
-          <span class=\"platform-badge\"><span data-l10n-en=\"Platform\" data-l10n-de=\"Plattform\">Platform</span>: <strong>{platform_text}</strong></span>
-          <span class=\"platform-badge platform-badge-{safe_collector_kind}\"><span data-l10n-en=\"Collector\" data-l10n-de=\"Collector\">Collector</span>: <strong data-l10n-en=\"{safe_collector_en}\" data-l10n-de=\"{safe_collector_de}\">{safe_collector_en}</strong></span>
-          <span class=\"platform-badge platform-badge-readonly\"><span data-l10n-en=\"Mode\" data-l10n-de=\"Modus\">Mode</span>: <strong data-l10n-en=\"Read-only\" data-l10n-de=\"Nur lesend\">Read-only</strong></span>
+          <span class=\"platform-badge\"><span data-l10n-en=\"Computer\" data-l10n-de=\"Rechner\">Computer</span>: <strong>{platform_text}</strong></span>
+          <span class=\"platform-badge platform-badge-{safe_collector_kind}\"><span data-l10n-en=\"View\" data-l10n-de=\"Ansicht\">View</span>: <strong data-l10n-en=\"{safe_collector_en}\" data-l10n-de=\"{safe_collector_de}\">{safe_collector_en}</strong></span>
+          <span class=\"platform-badge platform-badge-readonly\"><strong data-l10n-en=\"Nothing is changed\" data-l10n-de=\"Nichts wird verändert\">Nothing is changed</strong></span>
         </div>
 """.rstrip()
 
