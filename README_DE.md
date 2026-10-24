@@ -4,56 +4,19 @@
   <img src="https://raw.githubusercontent.com/IMaugrenI/IMaugrenI/main/assets/banner/tof_container_pulse_banner_clean.png" alt="tof_container_pulse banner" width="100%" />
 </p>
 
-> Die englische Hauptfassung liegt in `README.md`.
+**Den Zustand lokaler Infrastruktur auf einen Blick erfassen — ohne sie zu verändern.**
 
-**Lokale Pulse Suite für Docker, Hardware, Ports, Speicher, Dienste und Sicherheitsorientierung**
+Container Pulse erzeugt sechs statische Statusseiten für **Docker, Hardware, Ports, Speicher, Dienste und Sicherheitsorientierung**. Das Werkzeug richtet sich an Self-Hoster und lokale Betreiber, die ohne großen Monitoring-Stack schnell eine verständliche Übersicht benötigen.
 
-Erzeuge lokale statische Statusseiten — read-only, local-first, keine Datenbank, keine Cloud, kein Auto-Fix.
+**Einstieg:** [Schnellstart](START_HERE_DE.md) · [English README](README.md) · [ToF Systems Übersicht](https://github.com/IMaugrenI/tof-showcase)
 
-> **Neu hier?** Starte mit [START_HERE_DE.md](START_HERE_DE.md) für den kürzesten Erstlauf und eine Erklärung der sechs erzeugten Seiten.
+![Container-Pulse-Dashboard](assets/screenshots/pulse-main-1.png)
 
-![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
+*Beispiel aus der echten lokalen Oberfläche mit Containerzuständen, Warnschwellen und kritischen Signalen.*
 
-*Ein echter lokaler Host-Blick mit Container-Gesundheit, Warnschwellen und kritischen Zuständen auf einer Seite.*
+**Ein Host. Sechs Ansichten.** Erzeugt werden `pulse.html`, `hardware.html`, `ports.html`, `storage.html`, `services.html` und `security.html`. Ein kurzer Kontextbereich zeigt an, welcher Rechner beobachtet wird, welche Details verfügbar sind und dass keine Einstellungen geändert werden.
 
-Ein Host. Sechs Seiten. Eine lokale Sicht.
-
-`tof_container_pulse` ist eine kleine lokale Status-Suite. Sie erzeugt sechs statische HTML-Seiten für Container, Hardware, Ports, Speicher, Dienste und Sicherheitsorientierung, damit du eine Frage schnell beantworten kannst:
-
-> Ist gerade alles in Ordnung?
-
-## Was dieses Repo ist
-
-Dieses Repository ist das öffentliche **Observe**-Repo in der Produktlinie.
-
-## Für wen es gedacht ist
-
-Dieses Repo ist für Self-Hoster, lokale Operator und kleine Teams, die einfache Docker-Host-Sichtbarkeit wollen, ohne einen größeren Monitoring-Stack einzuführen.
-
-## Was es nicht ist
-
-Dieses Repo ist kein Control Plane, kein Cloud-Dienst und keine versteckte Automationsschicht.
-
-## Wohin du als Nächstes gehen kannst
-
-- `tof-showcase` — öffentlicher Architektur- und Produktlinien-Überblick
-- `tof_local_knowledge` — grounded lokale Knowledge-Workflows
-- `tof_local_builder` — kontrollierte lokale Build-Workflows
-
-## Rolle in der öffentlichen Produktlinie
-
-Beobachten (Systemzustand sichtbar machen)
-
-### Funktioniert allein
-Ja.
-
-### Integration
-Keine (bewusst nur Beobachtung)
-
-### Nicht gedacht für
-- andere Tools zu steuern
-- automatisierte Prozesse auszulösen
-- Teil einer Verarbeitungskette zu werden
+**Sicherheitsprinzip:** nur beobachten und informieren. Pulse startet keine Container neu, repariert den Host nicht, verändert keine Konfiguration und benötigt keine Cloud. Als eigenständiges **Observe**-Projekt löst es bewusst keine Aktionen anderer Werkzeuge aus.
 
 ## Features
 
