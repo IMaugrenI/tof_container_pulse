@@ -7,40 +7,19 @@
   <img src="https://raw.githubusercontent.com/IMaugrenI/IMaugrenI/main/assets/banner/tof_container_pulse_banner_clean.png" alt="tof_container_pulse banner" width="100%" />
 </p>
 
-**Local static Pulse Suite for Docker, hardware, ports, storage, services, and security orientation.**
+**Local infrastructure at a glance — without taking control of it.**
 
-Generate local static status pages — read-only, local-first, no database, no cloud, no auto-fix.
+Container Pulse generates six static status pages for **Docker, hardware, ports, storage, services, and security orientation**. It is intended for self-hosters and local operators who want a quick, readable status view without deploying a larger monitoring system.
 
-> **New here?** Start with [START_HERE.md](START_HERE.md) for the shortest first run and an explanation of the six generated pages.
+**Get started:** [First run](START_HERE.md) · [German README](README_DE.md) · [ToF Systems overview](https://github.com/IMaugrenI/tof-showcase)
 
 ![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
-*A real local host view showing container health, warning thresholds, and critical states in one page.*
+*Example of the real local dashboard: container state, warning thresholds, and critical signals.*
 
-One host. Six pages. One local view.
+**One host. Six views.** The generated pages are `pulse.html`, `hardware.html`, `ports.html`, `storage.html`, `services.html`, and `security.html`. The page context states which computer is being observed, whether detailed signals are available, and that no settings are changed.
 
-## What this repo is
-
-`tof_container_pulse` is a small local Observe repo.
-
-It generates static HTML pages so you can answer one question fast:
-
-> Is everything okay right now?
-
-The current suite generates:
-
-- `pulse.html` — Container Pulse
-- `hardware.html` — Hardware Pulse
-- `ports.html` — Port Pulse
-- `storage.html` — Storage Pulse
-- `services.html` — Services Pulse
-- `security.html` — Security Pulse
-
-Each generated page shows a small, human-readable context strip near the navigation:
-
-- **Computer** — the current operating-system context
-- **View** — whether the page can show a detailed or basic view on this platform
-- **Nothing is changed** — a reminder that Pulse only observes
+**Safety model:** read-only and advisory by design. Pulse does not restart containers, repair the host, modify configuration, or require a cloud account.
 
 ## Platform support
 
