@@ -1,31 +1,31 @@
 # Hier starten
 
-Das ist der kürzeste Weg, um `tof_container_pulse` laufen zu sehen.
+Das ist der kürzeste Weg vom frischen Klon bis zu einer nützlichen lokalen Übersicht über deinen Rechner.
 
 > English version: [START_HERE.md](START_HERE.md)
 
-## Was das Tool macht
+## Wofür dieses Produkt gedacht ist
 
-Pulse Suite liest lokale Statussignale und erzeugt sechs statische HTML-Seiten:
+Pulse gibt dir sechs lokale Seiten für einfache Fragen:
 
-- `pulse.html` — Docker-/Container-Übersicht
-- `hardware.html` — Hardware
-- `ports.html` — lokale Port-Orientierung
-- `storage.html` — Speicher
-- `services.html` — konfigurierte Dienstprüfungen
-- `security.html` — lokale Sicherheitsorientierung
+- **Container** — was läuft und was braucht Aufmerksamkeit?
+- **Hardware** — wirkt der Rechner unauffällig?
+- **Verbindungen** — welche lokalen Verbindungen sind offen?
+- **Speicher** — ist genug Platz frei und fällt etwas auf?
+- **Dienste** — sind die Dienste erreichbar, die dir wichtig sind?
+- **Sicherheit** — welche lokalen Einstellungen solltest du dir genauer ansehen?
 
-Das Tool arbeitet read-only und startet, repariert oder verändert nichts automatisch.
+Pulse schaut nur nach. Es startet, repariert, löscht oder verändert nichts.
 
-## Voraussetzungen
+## Was du brauchst
 
 - Python 3.10+
-- ein Browser
-- Docker CLI + laufender Docker-Daemon/Docker Desktop nur für Live-Containerdaten
+- einen Browser
+- Docker/Docker Desktop nur dann, wenn du Live-Containerinformationen sehen möchtest
 
-Die anderen Seiten können auch ohne Docker gerendert werden.
+Die anderen Seiten können auch ohne Docker angezeigt werden.
 
-## Erster Lauf
+## Erster Start
 
 ### Linux
 
@@ -51,29 +51,44 @@ cd tof_container_pulse
 ./scripts/windows/start_here.ps1
 ```
 
-Oder direkt:
+Der normale Einmallauf erzeugt die Seiten und öffnet die Containerübersicht.
+
+## Woran du erkennst, was wichtig ist
+
+Schau zuerst auf die Übersichtskarten:
+
+- **Läuft / OK** — aktuell fällt nichts auf
+- **Prüfen** — etwas ist einen Blick wert
+- **Braucht Aufmerksamkeit** — ein wichtiges Signal sollte geprüft werden
+- **Unbekannt / N/A** — Pulse konnte diesen Wert nicht sauber bestimmen
+
+Über die Navigation wechselst du zwischen den sechs Seiten. Jede Seite zeigt eine kurze Einordnung oder Empfehlung zum aktuellen Zustand.
+
+## Wenn etwas nicht verfügbar ist
+
+Fehlende Informationen sind nicht automatisch ein Fehler.
+
+Docker kann zum Beispiel gestoppt sein, während Hardware- oder Speicherinformationen trotzdem angezeigt werden.
+
+Wenn gar keine Seiten erzeugt werden, nutze:
+
+### Linux/macOS
 
 ```bash
-python3 run.py --once
+python3 scripts/smoke_check.py
 ```
 
-Unter Windows:
+### Windows
 
 ```powershell
-py run.py --once
+py scripts/smoke_check.py
 ```
 
-Der normale Einmallauf erzeugt die Seiten und öffnet `pulse.html`.
-
-## Erfolgszustand
-
-Nach dem Lauf sollten im Repository die sechs HTML-Dateien liegen. Öffne `pulse.html` und nutze die Navigation zwischen den Seiten.
-
-Nicht verfügbare Signale sollen ruhig als unbekannt/nicht verfügbar/N/A erscheinen statt das Tool abstürzen zu lassen.
+Der erste gemeldete Fehler ist der sinnvolle Ausgangspunkt.
 
 ## Automatisch aktualisieren
 
-Für eine Neugenerierung alle 60 Sekunden:
+Wenn Pulse die Seiten alle 60 Sekunden neu erzeugen soll:
 
 ```bash
 python3 run.py --watch 60
@@ -81,33 +96,25 @@ python3 run.py --watch 60
 
 Beenden mit `Ctrl+C`.
 
-## Wenn der erste Lauf scheitert
+## Datenschutz und Vertrauen
 
-Führe den eingebauten Smoke-Check aus. Er nutzt denselben Generierungsweg ohne Browseröffnung und prüft, ob alle sechs HTML-Seiten tatsächlich erzeugt wurden.
+Pulse arbeitet lokal und verändert nichts. Die erzeugten Seiten können aber Hostnamen, Container-Namen, Ports, Pfade und lokale Infrastrukturdetails enthalten.
 
-Linux/macOS:
+Prüfe HTML-Ausgaben und Screenshots, bevor du sie öffentlich teilst.
 
-```bash
-python3 scripts/smoke_check.py
-```
+Siehe [SECURITY.md](SECURITY.md).
 
-Windows PowerShell:
+## Stoppen und später weitermachen
 
-```powershell
-py scripts/smoke_check.py
-```
+Ein Einmallauf endet nach dem Erzeugen der Seiten.
 
-Wenn der Check fehlschlägt, ist der erste ausgegebene Fehler der sinnvolle Ausgangspunkt. Fehlendes Docker darf die Nicht-Docker-Seiten nicht daran hindern, zu rendern.
+Den Watch-Modus beendest du mit `Ctrl+C`.
 
-## Qualitätsprüfung
+Später startest du einfach denselben Befehl erneut. Pulse braucht keinen Server und kein Benutzerkonto, um weiterzuarbeiten.
 
-Derselbe Smoke-Pfad läuft in GitHub Actions auf Linux, macOS und Windows.
+## Beispiel aus echter Nutzung
 
-## Datenschutz
-
-Die erzeugten Seiten können Hostnamen, Container-Namen, Ports, Pfade und lokale Infrastrukturdetails zeigen.
-
-Veröffentliche keine HTML-Ausgaben oder Screenshots eines privaten Hosts, ohne sie vorher zu prüfen. Siehe [SECURITY.md](SECURITY.md).
+[docs/USER_JOURNEY_DE.md](docs/USER_JOURNEY_DE.md) zeigt einen kompletten Ablauf für den Fall „Etwas braucht Aufmerksamkeit“.
 
 ## Mehr Details
 
