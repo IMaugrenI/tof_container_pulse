@@ -1,31 +1,31 @@
 # Start here
 
-This is the shortest path to see `tof_container_pulse` working.
+This is the shortest path from a fresh clone to a useful local overview of your computer.
 
 > German version: [START_HERE_DE.md](START_HERE_DE.md)
 
-## What it does
+## What this product is for
 
-Pulse Suite reads local status signals and generates six static HTML pages:
+Pulse gives you six local pages that answer simple questions:
 
-- `pulse.html` — Docker/container overview
-- `hardware.html` — hardware overview
-- `ports.html` — local listening-port orientation
-- `storage.html` — storage overview
-- `services.html` — configured service checks
-- `security.html` — local security orientation
+- **Containers** — what is running and what needs attention?
+- **Hardware** — does the computer look healthy?
+- **Connections** — which local connections are open?
+- **Storage** — is there enough space and does anything stand out?
+- **Services** — are the services you care about reachable?
+- **Security** — which local settings may deserve a closer look?
 
-It is read-only and does not restart, repair, or change the host.
+Pulse only observes. It does not restart, repair, delete or change anything.
 
-## Requirements
+## What you need
 
 - Python 3.10+
 - a browser
-- Docker CLI + running Docker daemon/Desktop only if you want live container data
+- Docker/Docker Desktop only if you want live container information
 
-The non-Docker pages can still render when Docker is unavailable.
+The other pages still render when Docker is unavailable.
 
-## First run
+## First start
 
 ### Linux
 
@@ -51,63 +51,70 @@ cd tof_container_pulse
 ./scripts/windows/start_here.ps1
 ```
 
-Or run it directly:
-
-```bash
-python3 run.py --once
-```
-
-On Windows:
-
-```powershell
-py run.py --once
-```
-
-The default one-shot run generates the pages and opens `pulse.html`.
+The normal one-time run creates the pages and opens the container overview.
 
 ## What success looks like
 
-After the run, the repository directory should contain the six HTML files. Open `pulse.html` and use the navigation between pages.
+Look first at the summary cards:
 
-Unavailable signals should appear as unavailable/unknown/N/A rather than crashing the suite.
+- **Running / OK** means nothing currently stands out
+- **Check** means something is worth reviewing
+- **Needs attention** means an important signal should be looked at
+- **Unknown / N/A** means Pulse could not determine that value cleanly
 
-## Continuous refresh
+Use the navigation to move through the six pages. Each page includes a short recommendation or explanation of what the state means.
 
-If you want the files regenerated every 60 seconds:
+## If something is unavailable
 
-```bash
-python3 run.py --watch 60
-```
+Unavailable information is not automatically a failure.
 
-Stop watch mode with `Ctrl+C`.
+For example, Docker may be stopped while hardware or storage information can still be shown.
 
-## If the first run fails
+If the pages are not generated at all, run:
 
-Run the built-in smoke check. It uses the same generation path without opening a browser and verifies that all six HTML pages were actually rendered.
-
-Linux/macOS:
+### Linux/macOS
 
 ```bash
 python3 scripts/smoke_check.py
 ```
 
-Windows PowerShell:
+### Windows
 
 ```powershell
 py scripts/smoke_check.py
 ```
 
-If that fails, the first error printed by the smoke check is the useful starting point. Docker being unavailable should not prevent the non-Docker pages from rendering.
+The first reported error is the useful starting point.
 
-## Quality check
+## Continuous refresh
 
-The same smoke path is exercised in GitHub Actions across Linux, macOS, and Windows.
+If you want Pulse to recreate the pages every 60 seconds:
 
-## Privacy
+```bash
+python3 run.py --watch 60
+```
 
-Generated pages can reveal hostnames, container names, ports, paths, and local infrastructure details.
+Stop with `Ctrl+C`.
 
-Do not publish generated HTML or screenshots from a private host without reviewing them first. See [SECURITY.md](SECURITY.md).
+## Privacy and trust
+
+Pulse is local and read-only, but the generated pages can contain hostnames, container names, ports, paths and local infrastructure details.
+
+Review generated HTML and screenshots before sharing them publicly.
+
+See [SECURITY.md](SECURITY.md).
+
+## Stop and come back later
+
+A one-time run ends after generating the pages.
+
+Watch mode stops with `Ctrl+C`.
+
+Later, run the same start command again. Pulse does not require a server or account to keep working.
+
+## Real-life example
+
+See [docs/USER_JOURNEY.md](docs/USER_JOURNEY.md) for a complete “something needs attention” journey.
 
 ## More detail
 
