@@ -81,11 +81,25 @@ python3 run.py --watch 60
 
 Stop watch mode with `Ctrl+C`.
 
-## Quality check
+## If the first run fails
+
+Run the built-in smoke check. It uses the same generation path without opening a browser and verifies that all six HTML pages were actually rendered.
+
+Linux/macOS:
 
 ```bash
-python scripts/smoke_check.py
+python3 scripts/smoke_check.py
 ```
+
+Windows PowerShell:
+
+```powershell
+py scripts/smoke_check.py
+```
+
+If that fails, the first error printed by the smoke check is the useful starting point. Docker being unavailable should not prevent the non-Docker pages from rendering.
+
+## Quality check
 
 The same smoke path is exercised in GitHub Actions across Linux, macOS, and Windows.
 
