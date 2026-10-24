@@ -7,29 +7,29 @@
   <meta http-equiv="refresh" content="{{REFRESH_SECONDS}}">
   <style>
     :root {
-      --bg-0: #050914;
-      --bg-1: #07111f;
-      --bg-2: #030712;
-      --panel: rgba(13, 24, 39, 0.92);
-      --panel-soft: rgba(8, 15, 27, 0.72);
-      --panel-softer: rgba(8, 17, 30, 0.74);
-      --panel-line: rgba(126, 240, 255, 0.18);
-      --text: #eef6ff;
-      --text-strong: #ffffff;
-      --code-text: #dcecff;
-      --muted: #97a7bd;
-      --muted-2: #6f8096;
-      --teal: #36f3d3;
-      --cyan: #28c7ff;
-      --green: #40e98a;
-      --yellow: #ffd04a;
-      --red: #ff5b5f;
-      --unknown: #94a8bd;
-      --shadow: rgba(0, 0, 0, 0.45);
-      --grid-line: rgba(54, 243, 211, 0.04);
-      --glow-a: rgba(54, 243, 211, 0.18);
-      --glow-b: rgba(40, 199, 255, 0.12);
-      --glow-c: rgba(54, 243, 211, 0.12);
+      --bg-0: #0d0d0c;
+      --bg-1: #13120f;
+      --bg-2: #0b0b0a;
+      --panel: rgba(24, 22, 18, 0.94);
+      --panel-soft: rgba(255,255,255,0.018);
+      --panel-softer: rgba(255,255,255,0.012);
+      --panel-line: rgba(244,240,232,0.10);
+      --text: #f4f0e8;
+      --text-strong: #f8f4ed;
+      --code-text: #ddd5c8;
+      --muted: #aaa49a;
+      --muted-2: #777169;
+      --teal: #c69a52;
+      --cyan: #e1b969;
+      --green: #71c39b;
+      --yellow: #d8a85f;
+      --red: #cf7b72;
+      --unknown: #8e8a83;
+      --shadow: rgba(0, 0, 0, 0.32);
+      --grid-line: rgba(255,255,255,0.018);
+      --glow-a: rgba(198,154,82,0.08);
+      --glow-b: rgba(198,154,82,0.045);
+      --glow-c: rgba(198,154,82,0.035);
       --radius-xl: 28px;
       --radius-lg: 18px;
       --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -37,23 +37,23 @@
     }
 
     body.light {
-      --bg-0: #edf4fb;
-      --bg-1: #dceafe;
-      --bg-2: #f8fbff;
-      --panel: rgba(255, 255, 255, 0.90);
-      --panel-soft: rgba(255, 255, 255, 0.70);
-      --panel-softer: rgba(248, 250, 252, 0.88);
-      --panel-line: rgba(15, 118, 110, 0.18);
-      --text: #122033;
-      --text-strong: #0b1120;
-      --code-text: #0f172a;
-      --muted: #526174;
-      --muted-2: #718096;
-      --shadow: rgba(15, 23, 42, 0.14);
-      --grid-line: rgba(15, 118, 110, 0.05);
-      --glow-a: rgba(20, 184, 166, 0.18);
-      --glow-b: rgba(37, 99, 235, 0.12);
-      --glow-c: rgba(20, 184, 166, 0.10);
+      --bg-0: #efe9df;
+      --bg-1: #f6f1e8;
+      --bg-2: #fbf8f2;
+      --panel: rgba(255,255,255,0.72);
+      --panel-soft: rgba(255,255,255,0.50);
+      --panel-softer: rgba(246,241,232,0.82);
+      --panel-line: rgba(50,40,28,0.12);
+      --text: #211d18;
+      --text-strong: #17130f;
+      --code-text: #3c342b;
+      --muted: #6f675e;
+      --muted-2: #8a8177;
+      --shadow: rgba(52,41,28,0.12);
+      --grid-line: rgba(50,40,28,0.035);
+      --glow-a: rgba(155,113,53,0.10);
+      --glow-b: rgba(155,113,53,0.05);
+      --glow-c: rgba(155,113,53,0.035);
     }
 
     * { box-sizing: border-box; }
@@ -88,18 +88,18 @@
     .wrap { position: relative; z-index: 1; max-width: 1380px; margin: 0 auto; }
     .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; margin-bottom: 18px; }
     .brand { display: flex; gap: 18px; align-items: center; min-width: 0; }
-    .logo { flex: 0 0 72px; width: 72px; height: 72px; border: 1px solid rgba(54, 243, 211, 0.72); border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)), rgba(5, 12, 22, 0.9); box-shadow: 0 0 34px rgba(54, 243, 211, 0.18), inset 0 0 22px rgba(54, 243, 211, 0.06); }
+    .logo { flex: 0 0 72px; width: 72px; height: 72px; border: 1px solid rgba(198,154,82,0.58); border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)), rgba(5, 12, 22, 0.9); box-shadow: 0 0 34px rgba(198,154,82,0.10), inset 0 0 22px rgba(54, 243, 211, 0.06); }
     body.light .logo { background: rgba(255, 255, 255, 0.86); box-shadow: 0 0 28px rgba(20, 184, 166, 0.14), inset 0 0 18px rgba(20, 184, 166, 0.06); }
-    .logo::before { content: "⌁"; color: var(--teal); font-size: 36px; line-height: 1; text-shadow: 0 0 18px rgba(54, 243, 211, 0.7); transform: translateY(-2px); }
+    .logo::before { content: "⌁"; color: var(--teal); font-size: 36px; line-height: 1; text-shadow: 0 0 18px rgba(225,185,105,0.35); transform: translateY(-2px); }
     h1 { margin: 0; font-size: clamp(34px, 5vw, 72px); line-height: 0.96; letter-spacing: -0.055em; text-transform: uppercase; }
-    .pulse-word { color: var(--teal); text-shadow: 0 0 26px rgba(54, 243, 211, 0.28); }
+    .pulse-word { color: var(--teal); text-shadow: 0 0 26px rgba(198,154,82,0.20); }
     .tagline { margin: 10px 0 0; color: var(--muted); font-size: clamp(15px, 1.6vw, 21px); line-height: 1.45; }
     .tagline strong { color: var(--text-strong); font-weight: 700; }
     .hero-meta { justify-self: end; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
     .controls, .nav-strip, .status-strip { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .control-button, .nav-link { appearance: none; border: 1px solid var(--panel-line); border-radius: 999px; padding: 7px 11px; min-height: 32px; color: var(--text); background: var(--panel-soft); box-shadow: inset 0 0 18px rgba(255,255,255,0.03); white-space: nowrap; font: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; text-decoration: none; transition: border-color 140ms ease, transform 140ms ease, background 140ms ease; }
-    .control-button:hover, .nav-link:hover { border-color: rgba(54, 243, 211, 0.42); transform: translateY(-1px); }
-    .nav-link.active { border-color: rgba(54, 243, 211, 0.58); color: var(--teal); }
+    .control-button:hover, .nav-link:hover { border-color: rgba(198,154,82,0.30); transform: translateY(-1px); }
+    .nav-link.active { border-color: rgba(198,154,82,0.42); color: var(--teal); }
     .nav-link.disabled { cursor: default; opacity: 0.52; }
     .nav-link.disabled:hover { transform: none; border-color: var(--panel-line); }
     .pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--panel-line); border-radius: 999px; color: var(--text); background: var(--panel-soft); box-shadow: inset 0 0 20px rgba(255,255,255,0.03); white-space: nowrap; font-size: 13px; }
@@ -161,7 +161,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Port <span class="pulse-word">Pulse</span></h1>
-          <p class="tagline"><strong data-i18n="taglineStrong">Local listening ports at a glance.</strong><br><span data-i18n="taglineRest">Read-only. Local inspection. No external scan.</span></p>
+          <p class="tagline"><strong data-i18n="taglineStrong">See which connections are open on this computer.</strong><br><span data-i18n="taglineRest">Only this computer is checked. Nothing is changed.</span></p>
         </div>
       </div>
       <div class="hero-meta">
@@ -177,7 +177,7 @@
           <span class="nav-link disabled" data-i18n="navServices">Services</span>
           <span class="nav-link disabled" data-i18n="navSecurity">Security</span>
         </nav>
-        <span class="pill"><span class="dot dot-{{OVERALL_CLASS}}"></span> <span data-i18n="portHealth">Port state</span>: {{OVERALL}}</span>
+        <span class="pill"><span class="dot dot-{{OVERALL_CLASS}}"></span> <span data-i18n="portHealth">Connections</span>: {{OVERALL}}</span>
         <span class="pill"><span data-i18n="refreshEvery">Refresh every</span> {{REFRESH_SECONDS}}s</span>
       </div>
     </header>
@@ -188,9 +188,9 @@
           <p class="meta"><span data-i18n="generated">Generated</span>: {{GENERATED_AT}}<br><span data-i18n="previousUpdate">Previous successful update</span>: {{LAST_SUCCESS_AT}}</p>
         </div>
         <div class="status-strip">
-          <span class="pill"><span class="dot"></span> <span data-i18n="localObserver">Local observer</span></span>
-          <span class="pill" data-i18n="readOnlyPortCheck">Read-only port check</span>
-          <span class="pill" data-i18n="noExternalScan">No external scan</span>
+          <span class="pill"><span class="dot"></span> <span data-i18n="localObserver">Local overview</span></span>
+          <span class="pill" data-i18n="readOnlyPortCheck">Only reads current connections</span>
+          <span class="pill" data-i18n="noExternalScan">Only this computer is checked</span>
         </div>
       </section>
 
@@ -200,10 +200,10 @@
 
       <section class="health-panel" aria-label="Port health details">
         <div class="health-head">
-          <h2 data-i18n="portHealthTitle">Port Health</h2>
+          <h2 data-i18n="portHealthTitle">Open connections</h2>
           <span class="sev-badge sev-{{OVERALL_CLASS}}"><span data-i18n="overall">Overall</span>: {{OVERALL}}</span>
         </div>
-        <p class="recommendation"><strong data-i18n="recommendation">Recommendation</strong>: {{RECOMMENDATION}}</p>
+        <p class="recommendation"><strong data-i18n="recommendation">What to do</strong>: {{RECOMMENDATION}}</p>
       </section>
 
       <section class="messages" aria-label="Refresh messages">
@@ -212,15 +212,15 @@
 
       {{PORT_TABLE}}
 
-      <p class="footer-note" data-i18n="footerNote">Port Pulse is a local, static observer page. It does not scan external networks, change firewall rules, or modify services.</p>
+      <p class="footer-note" data-i18n="footerNote">Port Pulse shows open local connections. It does not scan other networks or change firewall or service settings.</p>
     </main>
   </div>
 
   <script>
     const I18N = {
       en: {
-        taglineStrong: 'Local listening ports at a glance.',
-        taglineRest: 'Read-only. Local inspection. No external scan.',
+        taglineStrong: 'See which connections are open on this computer.',
+        taglineRest: 'Only this computer is checked. Nothing is changed.',
         languageButton: 'Deutsch',
         themeLightButton: 'Light',
         themeDarkButton: 'Dark',
@@ -230,21 +230,21 @@
         navStorage: 'Storage',
         navServices: 'Services',
         navSecurity: 'Security',
-        portHealth: 'Port state',
+        portHealth: 'Connections',
         refreshEvery: 'Refresh every',
         generated: 'Generated',
         previousUpdate: 'Previous successful update',
-        localObserver: 'Local observer',
-        readOnlyPortCheck: 'Read-only port check',
-        noExternalScan: 'No external scan',
-        portHealthTitle: 'Port Health',
+        localObserver: 'Local overview',
+        readOnlyPortCheck: 'Only reads current connections',
+        noExternalScan: 'Only this computer is checked',
+        portHealthTitle: 'Open connections',
         overall: 'Overall',
-        recommendation: 'Recommendation',
-        footerNote: 'Port Pulse is a local, static observer page. It does not scan external networks, change firewall rules, or modify services.',
+        recommendation: 'What to do',
+        footerNote: 'Port Pulse shows open local connections. It does not scan other networks or change firewall or service settings.',
       },
       de: {
-        taglineStrong: 'Lokale lauschende Ports auf einen Blick.',
-        taglineRest: 'Nur lesend. Lokale Prüfung. Kein externer Scan.',
+        taglineStrong: 'Sieh, welche Verbindungen auf diesem Rechner offen sind.',
+        taglineRest: 'Es wird nur dieser Rechner geprüft. Nichts wird verändert.',
         languageButton: 'English',
         themeLightButton: 'Hell',
         themeDarkButton: 'Dunkel',
@@ -254,17 +254,17 @@
         navStorage: 'Speicher',
         navServices: 'Dienste',
         navSecurity: 'Sicherheit',
-        portHealth: 'Port-Zustand',
+        portHealth: 'Verbindungen',
         refreshEvery: 'Aktualisierung alle',
         generated: 'Erstellt',
         previousUpdate: 'Letztes erfolgreiches Update',
-        localObserver: 'Lokaler Observer',
-        readOnlyPortCheck: 'Nur lesender Port-Check',
-        noExternalScan: 'Kein externer Scan',
-        portHealthTitle: 'Port-Zustand',
+        localObserver: 'Lokale Übersicht',
+        readOnlyPortCheck: 'Liest nur aktuelle Verbindungen',
+        noExternalScan: 'Es wird nur dieser Rechner geprüft',
+        portHealthTitle: 'Verbindungen',
         overall: 'Gesamt',
-        recommendation: 'Empfehlung',
-        footerNote: 'Port Pulse ist eine lokale, statische Observer-Seite. Sie scannt keine externen Netzwerke, ändert keine Firewall-Regeln und verändert keine Dienste.',
+        recommendation: 'Was du tun kannst',
+        footerNote: 'Port Pulse zeigt offene lokale Verbindungen. Es prüft keine fremden Netzwerke und verändert weder Firewall noch Dienste.',
       },
     };
 

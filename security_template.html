@@ -7,29 +7,29 @@
   <meta http-equiv="refresh" content="{{REFRESH_SECONDS}}">
   <style>
     :root {
-      --bg-0: #050914;
-      --bg-1: #07111f;
-      --bg-2: #030712;
-      --panel: rgba(13, 24, 39, 0.92);
-      --panel-soft: rgba(8, 15, 27, 0.72);
-      --panel-softer: rgba(8, 17, 30, 0.74);
-      --panel-line: rgba(126, 240, 255, 0.18);
-      --text: #eef6ff;
-      --text-strong: #ffffff;
-      --code-text: #dcecff;
-      --muted: #97a7bd;
-      --muted-2: #6f8096;
-      --teal: #36f3d3;
-      --cyan: #28c7ff;
-      --green: #40e98a;
-      --yellow: #ffd04a;
-      --red: #ff5b5f;
-      --unknown: #94a8bd;
-      --shadow: rgba(0, 0, 0, 0.45);
-      --grid-line: rgba(54, 243, 211, 0.04);
-      --glow-a: rgba(54, 243, 211, 0.18);
-      --glow-b: rgba(40, 199, 255, 0.12);
-      --glow-c: rgba(54, 243, 211, 0.12);
+      --bg-0: #0d0d0c;
+      --bg-1: #13120f;
+      --bg-2: #0b0b0a;
+      --panel: rgba(24, 22, 18, 0.94);
+      --panel-soft: rgba(255,255,255,0.018);
+      --panel-softer: rgba(255,255,255,0.012);
+      --panel-line: rgba(244,240,232,0.10);
+      --text: #f4f0e8;
+      --text-strong: #f8f4ed;
+      --code-text: #ddd5c8;
+      --muted: #aaa49a;
+      --muted-2: #777169;
+      --teal: #c69a52;
+      --cyan: #e1b969;
+      --green: #71c39b;
+      --yellow: #d8a85f;
+      --red: #cf7b72;
+      --unknown: #8e8a83;
+      --shadow: rgba(0, 0, 0, 0.32);
+      --grid-line: rgba(255,255,255,0.018);
+      --glow-a: rgba(198,154,82,0.08);
+      --glow-b: rgba(198,154,82,0.045);
+      --glow-c: rgba(198,154,82,0.035);
       --radius-xl: 28px;
       --radius-lg: 18px;
       --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -37,23 +37,23 @@
     }
 
     body.light {
-      --bg-0: #edf4fb;
-      --bg-1: #dceafe;
-      --bg-2: #f8fbff;
-      --panel: rgba(255, 255, 255, 0.90);
-      --panel-soft: rgba(255, 255, 255, 0.70);
-      --panel-softer: rgba(248, 250, 252, 0.88);
-      --panel-line: rgba(15, 118, 110, 0.18);
-      --text: #122033;
-      --text-strong: #0b1120;
-      --code-text: #0f172a;
-      --muted: #526174;
-      --muted-2: #718096;
-      --shadow: rgba(15, 23, 42, 0.14);
-      --grid-line: rgba(15, 118, 110, 0.05);
-      --glow-a: rgba(20, 184, 166, 0.18);
-      --glow-b: rgba(37, 99, 235, 0.12);
-      --glow-c: rgba(20, 184, 166, 0.10);
+      --bg-0: #efe9df;
+      --bg-1: #f6f1e8;
+      --bg-2: #fbf8f2;
+      --panel: rgba(255,255,255,0.72);
+      --panel-soft: rgba(255,255,255,0.50);
+      --panel-softer: rgba(246,241,232,0.82);
+      --panel-line: rgba(50,40,28,0.12);
+      --text: #211d18;
+      --text-strong: #17130f;
+      --code-text: #3c342b;
+      --muted: #6f675e;
+      --muted-2: #8a8177;
+      --shadow: rgba(52,41,28,0.12);
+      --grid-line: rgba(50,40,28,0.035);
+      --glow-a: rgba(155,113,53,0.10);
+      --glow-b: rgba(155,113,53,0.05);
+      --glow-c: rgba(155,113,53,0.035);
     }
 
     * { box-sizing: border-box; }
@@ -88,18 +88,18 @@
     .wrap { position: relative; z-index: 1; max-width: 1380px; margin: 0 auto; }
     .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; margin-bottom: 18px; }
     .brand { display: flex; gap: 18px; align-items: center; min-width: 0; }
-    .logo { flex: 0 0 72px; width: 72px; height: 72px; border: 1px solid rgba(54, 243, 211, 0.72); border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)), rgba(5, 12, 22, 0.9); box-shadow: 0 0 34px rgba(54, 243, 211, 0.18), inset 0 0 22px rgba(54, 243, 211, 0.06); }
+    .logo { flex: 0 0 72px; width: 72px; height: 72px; border: 1px solid rgba(198,154,82,0.58); border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)), rgba(5, 12, 22, 0.9); box-shadow: 0 0 34px rgba(198,154,82,0.10), inset 0 0 22px rgba(54, 243, 211, 0.06); }
     body.light .logo { background: rgba(255, 255, 255, 0.86); box-shadow: 0 0 28px rgba(20, 184, 166, 0.14), inset 0 0 18px rgba(20, 184, 166, 0.06); }
-    .logo::before { content: "◇"; color: var(--teal); font-size: 30px; line-height: 1; text-shadow: 0 0 18px rgba(54, 243, 211, 0.7); transform: translateY(-1px); }
+    .logo::before { content: "◇"; color: var(--teal); font-size: 30px; line-height: 1; text-shadow: 0 0 18px rgba(225,185,105,0.35); transform: translateY(-1px); }
     h1 { margin: 0; font-size: clamp(34px, 5vw, 72px); line-height: 0.96; letter-spacing: -0.055em; text-transform: uppercase; }
-    .pulse-word { color: var(--teal); text-shadow: 0 0 26px rgba(54, 243, 211, 0.28); }
+    .pulse-word { color: var(--teal); text-shadow: 0 0 26px rgba(198,154,82,0.20); }
     .tagline { margin: 10px 0 0; color: var(--muted); font-size: clamp(15px, 1.6vw, 21px); line-height: 1.45; }
     .tagline strong { color: var(--text-strong); font-weight: 700; }
     .hero-meta { justify-self: end; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
     .controls, .nav-strip, .status-strip { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .control-button, .nav-link { appearance: none; border: 1px solid var(--panel-line); border-radius: 999px; padding: 7px 11px; min-height: 32px; color: var(--text); background: var(--panel-soft); box-shadow: inset 0 0 18px rgba(255,255,255,0.03); white-space: nowrap; font: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; text-decoration: none; transition: border-color 140ms ease, transform 140ms ease, background 140ms ease; }
-    .control-button:hover, .nav-link:hover { border-color: rgba(54, 243, 211, 0.42); transform: translateY(-1px); }
-    .nav-link.active { border-color: rgba(54, 243, 211, 0.58); color: var(--teal); }
+    .control-button:hover, .nav-link:hover { border-color: rgba(198,154,82,0.30); transform: translateY(-1px); }
+    .nav-link.active { border-color: rgba(198,154,82,0.42); color: var(--teal); }
     .pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--panel-line); border-radius: 999px; color: var(--text); background: var(--panel-soft); box-shadow: inset 0 0 20px rgba(255,255,255,0.03); white-space: nowrap; font-size: 13px; }
     .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--green); box-shadow: 0 0 16px rgba(64, 233, 138, 0.7); }
     .dot-warn { background: var(--yellow); box-shadow: 0 0 16px rgba(255, 208, 74, 0.7); }
@@ -159,7 +159,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Security <span class="pulse-word">Pulse</span></h1>
-          <p class="tagline"><strong data-i18n="taglineStrong">Local security signals at a glance.</strong><br><span data-i18n="taglineRest">Read-only. Advisory hints. No automatic changes.</span></p>
+          <p class="tagline"><strong data-i18n="taglineStrong">See which local settings may deserve a closer look.</strong><br><span data-i18n="taglineRest">Shows hints only. Nothing is changed automatically.</span></p>
         </div>
       </div>
       <div class="hero-meta">
@@ -175,7 +175,7 @@
           <a class="nav-link" href="services.html" data-i18n="navServices">Services</a>
           <a class="nav-link active" href="security.html" data-i18n="navSecurity">Security</a>
         </nav>
-        <span class="pill"><span class="dot dot-{{OVERALL_CLASS}}"></span> <span data-i18n="securityState">Security state</span>: {{OVERALL}}</span>
+        <span class="pill"><span class="dot dot-{{OVERALL_CLASS}}"></span> <span data-i18n="securityState">Security overview</span>: {{OVERALL}}</span>
         <span class="pill"><span data-i18n="refreshEvery">Refresh every</span> {{REFRESH_SECONDS}}s</span>
       </div>
     </header>
@@ -186,9 +186,9 @@
           <p class="meta"><span data-i18n="generated">Generated</span>: {{GENERATED_AT}}<br><span data-i18n="previousUpdate">Previous successful update</span>: {{LAST_SUCCESS_AT}}</p>
         </div>
         <div class="status-strip">
-          <span class="pill"><span class="dot"></span> <span data-i18n="localSignals">Local signals</span></span>
-          <span class="pill" data-i18n="readOnlyReview">Read-only review</span>
-          <span class="pill" data-i18n="noAutoFix">No auto-fix</span>
+          <span class="pill"><span class="dot"></span> <span data-i18n="localSignals">Local checks</span></span>
+          <span class="pill" data-i18n="readOnlyReview">Only reads current settings</span>
+          <span class="pill" data-i18n="noAutoFix">No automatic changes</span>
         </div>
       </section>
 
@@ -198,10 +198,10 @@
 
       <section class="health-panel" aria-label="Security health details">
         <div class="health-head">
-          <h2 data-i18n="securityHealthTitle">Security State</h2>
+          <h2 data-i18n="securityHealthTitle">Security overview</h2>
           <span class="sev-badge sev-{{OVERALL_CLASS}}"><span data-i18n="overall">Overall</span>: {{OVERALL}}</span>
         </div>
-        <p class="recommendation"><strong data-i18n="recommendation">Recommendation</strong>: {{RECOMMENDATION}}</p>
+        <p class="recommendation"><strong data-i18n="recommendation">What to look at</strong>: {{RECOMMENDATION}}</p>
       </section>
 
       <section class="messages" aria-label="Refresh messages">
@@ -210,15 +210,15 @@
 
       {{SECURITY_TABLE}}
 
-      <p class="footer-note" data-i18n="footerNote">Security Pulse is a local, static observer page. It does not change firewall rules, users, services, or system settings.</p>
+      <p class="footer-note" data-i18n="footerNote">Security Pulse highlights local settings worth reviewing. It does not change firewall, users, services or system settings.</p>
     </main>
   </div>
 
   <script>
     const I18N = {
       en: {
-        taglineStrong: 'Local security signals at a glance.',
-        taglineRest: 'Read-only. Advisory hints. No automatic changes.',
+        taglineStrong: 'See which local settings may deserve a closer look.',
+        taglineRest: 'Shows hints only. Nothing is changed automatically.',
         languageButton: 'Deutsch',
         themeLightButton: 'Light',
         themeDarkButton: 'Dark',
@@ -228,21 +228,21 @@
         navStorage: 'Storage',
         navServices: 'Services',
         navSecurity: 'Security',
-        securityState: 'Security state',
+        securityState: 'Security overview',
         refreshEvery: 'Refresh every',
         generated: 'Generated',
         previousUpdate: 'Previous successful update',
-        localSignals: 'Local signals',
-        readOnlyReview: 'Read-only review',
-        noAutoFix: 'No auto-fix',
-        securityHealthTitle: 'Security State',
+        localSignals: 'Local checks',
+        readOnlyReview: 'Only reads current settings',
+        noAutoFix: 'No automatic changes',
+        securityHealthTitle: 'Security overview',
         overall: 'Overall',
-        recommendation: 'Recommendation',
-        footerNote: 'Security Pulse is a local, static observer page. It does not change firewall rules, users, services, or system settings.',
+        recommendation: 'What to look at',
+        footerNote: 'Security Pulse highlights local settings worth reviewing. It does not change firewall, users, services or system settings.',
       },
       de: {
-        taglineStrong: 'Lokale Sicherheitssignale auf einen Blick.',
-        taglineRest: 'Nur lesend. Hinweise zur Sichtprüfung. Keine automatischen Änderungen.',
+        taglineStrong: 'Sieh, welche lokalen Einstellungen du dir genauer ansehen solltest.',
+        taglineRest: 'Zeigt nur Hinweise. Es wird nichts automatisch verändert.',
         languageButton: 'English',
         themeLightButton: 'Hell',
         themeDarkButton: 'Dunkel',
@@ -252,17 +252,17 @@
         navStorage: 'Speicher',
         navServices: 'Dienste',
         navSecurity: 'Sicherheit',
-        securityState: 'Sicherheitszustand',
+        securityState: 'Sicherheitsübersicht',
         refreshEvery: 'Aktualisierung alle',
         generated: 'Erstellt',
         previousUpdate: 'Letztes erfolgreiches Update',
-        localSignals: 'Lokale Signale',
-        readOnlyReview: 'Nur lesende Sichtprüfung',
-        noAutoFix: 'Kein Auto-Fix',
-        securityHealthTitle: 'Sicherheitszustand',
+        localSignals: 'Lokale Prüfungen',
+        readOnlyReview: 'Liest nur aktuelle Einstellungen',
+        noAutoFix: 'Keine automatischen Änderungen',
+        securityHealthTitle: 'Sicherheitsübersicht',
         overall: 'Gesamt',
-        recommendation: 'Empfehlung',
-        footerNote: 'Security Pulse ist eine lokale, statische Observer-Seite. Sie ändert keine Firewall-Regeln, Nutzer, Dienste oder Systemeinstellungen.',
+        recommendation: 'Was du dir ansehen solltest',
+        footerNote: 'Security Pulse hebt lokale Einstellungen hervor, die du prüfen solltest. Es verändert weder Firewall, Nutzer, Dienste noch Systemeinstellungen.',
       },
     };
 

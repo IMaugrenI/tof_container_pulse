@@ -7,31 +7,31 @@
   <meta http-equiv="refresh" content="{{REFRESH_SECONDS}}">
   <style>
     :root {
-      --bg-0: #050914;
-      --bg-1: #07111f;
-      --bg-2: #030712;
-      --panel: rgba(13, 24, 39, 0.92);
-      --panel-soft: rgba(8, 15, 27, 0.72);
-      --panel-softer: rgba(8, 17, 30, 0.74);
-      --panel-line: rgba(126, 240, 255, 0.18);
-      --text: #eef6ff;
-      --text-strong: #ffffff;
-      --code-text: #dcecff;
-      --muted: #97a7bd;
-      --muted-2: #6f8096;
-      --teal: #36f3d3;
-      --cyan: #28c7ff;
-      --green: #40e98a;
-      --yellow: #ffd04a;
-      --red: #ff5b5f;
-      --unknown: #94a8bd;
-      --shadow: rgba(0, 0, 0, 0.45);
-      --grid-line: rgba(54, 243, 211, 0.04);
-      --hero-line-a: rgba(54, 243, 211, 0.15);
-      --hero-line-b: rgba(40, 199, 255, 0.10);
-      --glow-a: rgba(54, 243, 211, 0.18);
-      --glow-b: rgba(40, 199, 255, 0.12);
-      --glow-c: rgba(54, 243, 211, 0.12);
+      --bg-0: #0d0d0c;
+      --bg-1: #13120f;
+      --bg-2: #0b0b0a;
+      --panel: rgba(24, 22, 18, 0.94);
+      --panel-soft: rgba(255,255,255,0.018);
+      --panel-softer: rgba(255,255,255,0.012);
+      --panel-line: rgba(244,240,232,0.10);
+      --text: #f4f0e8;
+      --text-strong: #f8f4ed;
+      --code-text: #ddd5c8;
+      --muted: #aaa49a;
+      --muted-2: #777169;
+      --teal: #c69a52;
+      --cyan: #e1b969;
+      --green: #71c39b;
+      --yellow: #d8a85f;
+      --red: #cf7b72;
+      --unknown: #8e8a83;
+      --shadow: rgba(0, 0, 0, 0.32);
+      --grid-line: rgba(255,255,255,0.018);
+      --hero-line-a: rgba(198,154,82,0.16);
+      --hero-line-b: rgba(225,185,105,0.08);
+      --glow-a: rgba(198,154,82,0.08);
+      --glow-b: rgba(198,154,82,0.045);
+      --glow-c: rgba(198,154,82,0.035);
       --radius-xl: 28px;
       --radius-lg: 18px;
       --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -39,25 +39,25 @@
     }
 
     body.light {
-      --bg-0: #edf4fb;
-      --bg-1: #dceafe;
-      --bg-2: #f8fbff;
-      --panel: rgba(255, 255, 255, 0.90);
-      --panel-soft: rgba(255, 255, 255, 0.70);
-      --panel-softer: rgba(248, 250, 252, 0.88);
-      --panel-line: rgba(15, 118, 110, 0.18);
-      --text: #122033;
-      --text-strong: #0b1120;
-      --code-text: #0f172a;
-      --muted: #526174;
-      --muted-2: #718096;
-      --shadow: rgba(15, 23, 42, 0.14);
-      --grid-line: rgba(15, 118, 110, 0.05);
-      --hero-line-a: rgba(15, 118, 110, 0.16);
-      --hero-line-b: rgba(37, 99, 235, 0.10);
-      --glow-a: rgba(20, 184, 166, 0.18);
-      --glow-b: rgba(37, 99, 235, 0.12);
-      --glow-c: rgba(20, 184, 166, 0.10);
+      --bg-0: #efe9df;
+      --bg-1: #f6f1e8;
+      --bg-2: #fbf8f2;
+      --panel: rgba(255,255,255,0.72);
+      --panel-soft: rgba(255,255,255,0.50);
+      --panel-softer: rgba(246,241,232,0.82);
+      --panel-line: rgba(50,40,28,0.12);
+      --text: #211d18;
+      --text-strong: #17130f;
+      --code-text: #3c342b;
+      --muted: #6f675e;
+      --muted-2: #8a8177;
+      --shadow: rgba(52,41,28,0.12);
+      --grid-line: rgba(50,40,28,0.035);
+      --hero-line-a: rgba(155,113,53,0.16);
+      --hero-line-b: rgba(155,113,53,0.08);
+      --glow-a: rgba(155,113,53,0.10);
+      --glow-b: rgba(155,113,53,0.05);
+      --glow-c: rgba(155,113,53,0.035);
     }
 
     * { box-sizing: border-box; }
@@ -129,14 +129,14 @@
       flex: 0 0 72px;
       width: 72px;
       height: 72px;
-      border: 1px solid rgba(54, 243, 211, 0.72);
+      border: 1px solid rgba(198,154,82,0.58);
       border-radius: 22px;
       display: grid;
       place-items: center;
       background:
         linear-gradient(145deg, rgba(54, 243, 211, 0.12), rgba(40, 199, 255, 0.04)),
         rgba(5, 12, 22, 0.9);
-      box-shadow: 0 0 34px rgba(54, 243, 211, 0.18), inset 0 0 22px rgba(54, 243, 211, 0.06);
+      box-shadow: 0 0 34px rgba(198,154,82,0.10), inset 0 0 22px rgba(54, 243, 211, 0.06);
     }
 
     body.light .logo {
@@ -147,11 +147,11 @@
     }
 
     .logo::before {
-      content: "▥";
+      content: "TOF";
       color: var(--teal);
-      font-size: 34px;
+      font-size: 15px;
       line-height: 1;
-      text-shadow: 0 0 18px rgba(54, 243, 211, 0.7);
+      text-shadow: 0 0 18px rgba(225,185,105,0.35);
       transform: translateY(-2px);
     }
 
@@ -166,7 +166,7 @@
       border-bottom: 3px solid var(--cyan);
       transform: skewX(-28deg);
       opacity: 0.85;
-      filter: drop-shadow(0 0 8px rgba(40, 199, 255, 0.72));
+      filter: drop-shadow(0 0 8px rgba(225,185,105,0.28));
     }
 
     h1 {
@@ -179,7 +179,7 @@
 
     .pulse-word {
       color: var(--teal);
-      text-shadow: 0 0 26px rgba(54, 243, 211, 0.28);
+      text-shadow: 0 0 26px rgba(198,154,82,0.20);
     }
 
     .tagline {
@@ -225,7 +225,7 @@
     }
 
     .control-button:hover {
-      border-color: rgba(54, 243, 211, 0.42);
+      border-color: rgba(198,154,82,0.30);
       transform: translateY(-1px);
     }
 
@@ -548,7 +548,7 @@
       border-radius: 12px;
       color: var(--teal);
       background: rgba(54, 243, 211, 0.09);
-      border: 1px solid rgba(54, 243, 211, 0.18);
+      border: 1px solid rgba(198,154,82,0.10);
       font-weight: 900;
     }
 
@@ -600,7 +600,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Container <span class="pulse-word">Pulse</span></h1>
-          <p class="tagline"><strong data-i18n="taglineStrong">Local Docker host status at a glance.</strong><br><span data-i18n="taglineRest">Read-only. Static HTML. No cloud. No database.</span></p>
+          <p class="tagline"><strong data-i18n="taglineStrong">See what is running and what needs attention.</strong><br><span data-i18n="taglineRest">Local view. Nothing is changed automatically.</span></p>
         </div>
       </div>
       <div class="hero-meta">
@@ -608,7 +608,7 @@
           <button class="control-button" type="button" id="language-toggle" onclick="toggleLanguage()">Deutsch</button>
           <button class="control-button" type="button" id="theme-toggle" onclick="toggleTheme()">Light</button>
         </div>
-        <span class="pill"><span class="dot"></span> <span data-i18n="oneGlance">One host. One page. One glance.</span></span>
+        <span class="pill"><span class="dot"></span> <span data-i18n="oneGlance">One computer. One clear overview.</span></span>
         <span class="pill"><span data-i18n="refreshEvery">Refresh every</span> {{REFRESH_SECONDS}}s</span>
       </div>
     </header>
@@ -619,17 +619,17 @@
           <p class="meta"><span data-i18n="generated">Generated</span>: {{GENERATED_AT}}<br><span data-i18n="previousUpdate">Previous successful update</span>: {{LAST_SUCCESS_AT}}</p>
         </div>
         <div class="status-strip">
-          <span class="pill"><span class="dot"></span> <span data-i18n="localObserver">Local observer</span></span>
-          <span class="pill" data-i18n="readOnlyCli">Read-only Docker CLI</span>
-          <span class="pill" data-i18n="staticOutput">Static output</span>
+          <span class="pill"><span class="dot"></span> <span data-i18n="localObserver">Local overview</span></span>
+          <span class="pill" data-i18n="readOnlyCli">Only reads current status</span>
+          <span class="pill" data-i18n="staticOutput">Saved local page</span>
         </div>
       </section>
 
       <section class="summary-grid" aria-label="Container status summary">
         <div class="card card-total"><span data-i18n="total">Total</span><strong>{{TOTAL}}</strong></div>
         <div class="card card-running"><span data-i18n="running">Running</span><strong>{{RUNNING}}</strong></div>
-        <div class="card card-warn"><span data-i18n="warn">Warn</span><strong>{{WARN}}</strong></div>
-        <div class="card card-critical"><span data-i18n="critical">Critical</span><strong>{{CRITICAL}}</strong></div>
+        <div class="card card-warn"><span data-i18n="warn">Check</span><strong>{{WARN}}</strong></div>
+        <div class="card card-critical"><span data-i18n="critical">Needs attention</span><strong>{{CRITICAL}}</strong></div>
         <div class="card card-unknown"><span data-i18n="unknown">Unknown</span><strong>{{UNKNOWN}}</strong></div>
       </section>
 
@@ -637,9 +637,9 @@
         {{MESSAGES}}
       </section>
 
-      <section class="table-title" aria-label="Container overview title">
-        <h2 data-i18n="containerOverview">Container overview</h2>
-        <span data-i18n="loadBars">CPU and memory are shown as quick visual load bars.</span>
+      <section class="table-title" aria-label="Your containers title">
+        <h2 data-i18n="containerOverview">Your containers</h2>
+        <span data-i18n="loadBars">Load and memory are shown so unusual activity is easier to spot.</span>
       </section>
 
       <section class="table-shell" aria-label="Container details">
@@ -648,14 +648,14 @@
             <tr>
               <th data-i18n="host">Host</th>
               <th data-i18n="name">Name</th>
-              <th data-i18n="severity">Severity</th>
+              <th data-i18n="severity">Attention</th>
               <th data-i18n="status">Status</th>
               <th data-i18n="state">State</th>
               <th>CPU</th>
               <th data-i18n="memory">Memory</th>
               <th data-i18n="memoryPercent">Memory %</th>
               <th data-i18n="image">Image</th>
-              <th data-i18n="runningFor">Running For</th>
+              <th data-i18n="runningFor">Running since</th>
               <th data-i18n="notes">Notes</th>
             </tr>
           </thead>
@@ -666,81 +666,81 @@
       </section>
 
       <section class="feature-strip" aria-label="Design principles">
-        <div class="feature"><span class="feature-icon">✓</span><div><strong data-i18n="featureLocalTitle">100% local</strong><small data-i18n="featureLocalText">Your Docker status stays on your machine.</small></div></div>
-        <div class="feature"><span class="feature-icon">🔒</span><div><strong data-i18n="featureReadonlyTitle">Read-only</strong><small data-i18n="featureReadonlyText">Observes status without controlling containers.</small></div></div>
-        <div class="feature"><span class="feature-icon">∅</span><div><strong data-i18n="featureCloudTitle">No cloud</strong><small data-i18n="featureCloudText">No account, no remote dashboard, no database.</small></div></div>
-        <div class="feature"><span class="feature-icon">⚡</span><div><strong data-i18n="featureGlanceTitle">Fast glance</strong><small data-i18n="featureGlanceText">Built for quick checks, not monitoring bloat.</small></div></div>
+        <div class="feature"><span class="feature-icon">✓</span><div><strong data-i18n="featureLocalTitle">Stays local</strong><small data-i18n="featureLocalText">The overview is created on this computer.</small></div></div>
+        <div class="feature"><span class="feature-icon">🔒</span><div><strong data-i18n="featureReadonlyTitle">Only looks</strong><small data-i18n="featureReadonlyText">Shows what is happening without starting, stopping or changing anything.</small></div></div>
+        <div class="feature"><span class="feature-icon">∅</span><div><strong data-i18n="featureCloudTitle">No account needed</strong><small data-i18n="featureCloudText">You can use the overview locally without signing in anywhere.</small></div></div>
+        <div class="feature"><span class="feature-icon">⚡</span><div><strong data-i18n="featureGlanceTitle">What matters first</strong><small data-i18n="featureGlanceText">The most important signals are visible without digging through tools.</small></div></div>
       </section>
 
-      <p class="footer-note" data-i18n="footerNote">Container Pulse is a local, static observer page. It does not restart, stop, or modify containers.</p>
+      <p class="footer-note" data-i18n="footerNote">Container Pulse shows the current state. It does not restart, stop or change containers.</p>
     </main>
   </div>
 
   <script>
     const I18N = {
       en: {
-        taglineStrong: 'Local Docker host status at a glance.',
-        taglineRest: 'Read-only. Static HTML. No cloud. No database.',
+        taglineStrong: 'See what is running and what needs attention.',
+        taglineRest: 'Local view. Nothing is changed automatically.',
         languageButton: 'Deutsch',
         themeLightButton: 'Light',
         themeDarkButton: 'Dark',
-        oneGlance: 'One host. One page. One glance.',
+        oneGlance: 'One computer. One clear overview.',
         refreshEvery: 'Refresh every',
         generated: 'Generated',
         previousUpdate: 'Previous successful update',
-        localObserver: 'Local observer',
-        readOnlyCli: 'Read-only Docker CLI',
-        staticOutput: 'Static output',
+        localObserver: 'Local overview',
+        readOnlyCli: 'Only reads current status',
+        staticOutput: 'Saved local page',
         total: 'Total',
         running: 'Running',
-        warn: 'Warn',
-        critical: 'Critical',
+        warn: 'Check',
+        critical: 'Needs attention',
         unknown: 'Unknown',
-        containerOverview: 'Container overview',
-        loadBars: 'CPU and memory are shown as quick visual load bars.',
+        containerOverview: 'Your containers',
+        loadBars: 'Load and memory are shown so unusual activity is easier to spot.',
         host: 'Host',
         name: 'Name',
-        severity: 'Severity',
+        severity: 'Attention',
         status: 'Status',
         state: 'State',
         memory: 'Memory',
         memoryPercent: 'Memory %',
         image: 'Image',
-        runningFor: 'Running For',
+        runningFor: 'Running since',
         notes: 'Notes',
-        featureLocalTitle: '100% local',
-        featureLocalText: 'Your Docker status stays on your machine.',
-        featureReadonlyTitle: 'Read-only',
-        featureReadonlyText: 'Observes status without controlling containers.',
-        featureCloudTitle: 'No cloud',
-        featureCloudText: 'No account, no remote dashboard, no database.',
-        featureGlanceTitle: 'Fast glance',
-        featureGlanceText: 'Built for quick checks, not monitoring bloat.',
-        footerNote: 'Container Pulse is a local, static observer page. It does not restart, stop, or modify containers.',
+        featureLocalTitle: 'Stays local',
+        featureLocalText: 'The overview is created on this computer.',
+        featureReadonlyTitle: 'Only looks',
+        featureReadonlyText: 'Shows what is happening without starting, stopping or changing anything.',
+        featureCloudTitle: 'No account needed',
+        featureCloudText: 'You can use the overview locally without signing in anywhere.',
+        featureGlanceTitle: 'What matters first',
+        featureGlanceText: 'The most important signals are visible without digging through tools.',
+        footerNote: 'Container Pulse shows the current state. It does not restart, stop or change containers.',
       },
       de: {
-        taglineStrong: 'Lokaler Docker-Host-Status auf einen Blick.',
-        taglineRest: 'Nur lesend. Statisches HTML. Keine Cloud. Keine Datenbank.',
+        taglineStrong: 'Sieh sofort, was läuft und was Aufmerksamkeit braucht.',
+        taglineRest: 'Lokale Übersicht. Es wird nichts automatisch verändert.',
         languageButton: 'English',
         themeLightButton: 'Hell',
         themeDarkButton: 'Dunkel',
-        oneGlance: 'Ein Host. Eine Seite. Ein Blick.',
+        oneGlance: 'Ein Rechner. Eine klare Übersicht.',
         refreshEvery: 'Aktualisierung alle',
         generated: 'Erstellt',
         previousUpdate: 'Letztes erfolgreiches Update',
-        localObserver: 'Lokaler Observer',
-        readOnlyCli: 'Nur lesender Docker-CLI-Zugriff',
-        staticOutput: 'Statische Ausgabe',
+        localObserver: 'Lokale Übersicht',
+        readOnlyCli: 'Liest nur den aktuellen Zustand',
+        staticOutput: 'Lokal gespeicherte Ansicht',
         total: 'Gesamt',
         running: 'Laufend',
-        warn: 'Warnung',
-        critical: 'Kritisch',
+        warn: 'Checkung',
+        critical: 'Braucht Aufmerksamkeit',
         unknown: 'Unbekannt',
-        containerOverview: 'Container-Übersicht',
-        loadBars: 'CPU und Speicher werden als schnelle visuelle Lastbalken angezeigt.',
+        containerOverview: 'Deine Container',
+        loadBars: 'Auslastung und Speicher werden so gezeigt, dass Auffälligkeiten schnell sichtbar werden.',
         host: 'Host',
         name: 'Name',
-        severity: 'Schweregrad',
+        severity: 'Aufmerksamkeit',
         status: 'Status',
         state: 'Zustand',
         memory: 'Speicher',
@@ -748,15 +748,15 @@
         image: 'Image',
         runningFor: 'Läuft seit',
         notes: 'Hinweise',
-        featureLocalTitle: '100% lokal',
-        featureLocalText: 'Dein Docker-Status bleibt auf deiner Maschine.',
-        featureReadonlyTitle: 'Nur lesend',
-        featureReadonlyText: 'Beobachtet Status, ohne Container zu steuern.',
-        featureCloudTitle: 'Keine Cloud',
-        featureCloudText: 'Kein Account, kein Remote-Dashboard, keine Datenbank.',
-        featureGlanceTitle: 'Schneller Blick',
-        featureGlanceText: 'Gebaut für schnelle Checks, nicht für Monitoring-Bloat.',
-        footerNote: 'Container Pulse ist eine lokale, statische Observer-Seite. Sie startet, stoppt oder verändert keine Container.',
+        featureLocalTitle: 'Bleibt lokal',
+        featureLocalText: 'Die Übersicht wird auf diesem Rechner erstellt.',
+        featureReadonlyTitle: 'Schaut nur nach',
+        featureReadonlyText: 'Zeigt den Zustand, ohne etwas zu starten, zu stoppen oder zu verändern.',
+        featureCloudTitle: 'Kein Konto nötig',
+        featureCloudText: 'Die Übersicht funktioniert lokal, ohne Anmeldung bei einem Onlinedienst.',
+        featureGlanceTitle: 'Wichtiges zuerst',
+        featureGlanceText: 'Die wichtigsten Signale sind sichtbar, ohne dass du dich durch Werkzeuge arbeiten musst.',
+        footerNote: 'Container Pulse zeigt den aktuellen Zustand. Es startet, stoppt oder verändert keine Container.',
       },
     };
 
