@@ -29,9 +29,9 @@ EXPECTED_HTML = (
 
 REQUIRED_GENERATED_MARKERS = (
     'id="tof-platform-badges"',
-    "Platform",
-    "Collector",
-    "Read-only",
+    'data-l10n-en="Computer"',
+    'data-l10n-en="View"',
+    'data-l10n-en="Nothing is changed"',
 )
 
 # Match the suite's real template placeholders, such as {{TITLE}}, {{ROWS}},
