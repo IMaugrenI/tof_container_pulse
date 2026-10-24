@@ -11,6 +11,8 @@
 
 Generate local static status pages — read-only, local-first, no database, no cloud, no auto-fix.
 
+> **New here?** Start with [START_HERE.md](START_HERE.md) for the shortest first run and an explanation of the six generated pages.
+
 ![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
 *A real local host view showing container health, warning thresholds, and critical states in one page.*

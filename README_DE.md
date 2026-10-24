@@ -6,18 +6,19 @@
 
 > Die englische Hauptfassung liegt in `README.md`.
 
-**Lokaler Docker-Host-Status auf einen Blick**
+**Lokale Pulse Suite für Docker, Hardware, Ports, Speicher, Dienste und Sicherheitsorientierung**
 
-Erzeuge eine einfache statische Statusseite aus Docker-CLI-Daten — read-only, local-first, keine Datenbank, keine Cloud.
+Erzeuge lokale statische Statusseiten — read-only, local-first, keine Datenbank, keine Cloud, kein Auto-Fix.
+
+> **Neu hier?** Starte mit [START_HERE_DE.md](START_HERE_DE.md) für den kürzesten Erstlauf und eine Erklärung der sechs erzeugten Seiten.
 
 ![Container Pulse dashboard](assets/screenshots/pulse-main-1.png)
 
 *Ein echter lokaler Host-Blick mit Container-Gesundheit, Warnschwellen und kritischen Zuständen auf einer Seite.*
 
-Ein Host. Eine Seite. Ein Blick.
+Ein Host. Sechs Seiten. Eine lokale Sicht.
 
-`tof_container_pulse` ist ein kleines lokales Dashboard für Docker-Hosts.
-Es erzeugt eine statische `pulse.html`, damit du eine Frage schnell beantworten kannst:
+`tof_container_pulse` ist eine kleine lokale Status-Suite. Sie erzeugt sechs statische HTML-Seiten für Container, Hardware, Ports, Speicher, Dienste und Sicherheitsorientierung, damit du eine Frage schnell beantworten kannst:
 
 > Ist gerade alles in Ordnung?
 
@@ -68,7 +69,7 @@ Keine (bewusst nur Beobachtung)
 
 ## Voraussetzungen
 
-- Python 3.9+
+- Python 3.10+
 - Docker CLI in `PATH`
 - Docker Daemon oder Docker Desktop läuft
 
