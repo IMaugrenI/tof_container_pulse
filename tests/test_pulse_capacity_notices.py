@@ -32,7 +32,7 @@ def test_host_summary_uses_last_success_per_host(tmp_path):
     assert len(report["hosts"])==2
     assert report["hosts"][0]["host"]=="local"
     assert report["hosts"][1]["critical"]==1
-    assert "Capacity" in render_capacity(load_history(path))
+    assert "capacity overview" in render_capacity(load_history(path))
 
 
 def test_notice_baseline_new_and_resolved_without_repeats(tmp_path):
