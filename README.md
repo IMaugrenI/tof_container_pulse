@@ -267,6 +267,30 @@ For quality checks, see:
 - single-host by default
 - optional multi-host via Docker contexts
 - read-only by design
-- no time-series history
+- optional bounded time-series history (off by default)
 - no container restart or control actions
 - platform-specific unavailable values should render as optional, unknown, or N/A instead of crashing
+
+
+## Expansion branch A1–A8 (development preview)
+
+The draft PR #36 expands the existing six-page, read-only Suite without
+introducing a daemon, control endpoint, second launch route or cloud.
+
+- Optional local state and CPU/memory history, change detection and lifecycle incidents.
+- Explicit Compose-label topology, human-readable diagnostic hints and image/port drift.
+- Static trend graphs, latest successful per-host overview, conservative capacity hints.
+- Optional local notice inbox (not desktop push or messaging).
+- Deliberate CLI JSON incident export with anonymous host aliases only.
+
+Example (after opting into history in a local YAML config):
+
+\`\`\`bash
+python3 run.py --once --no-open --config config.yaml
+python3 run.py --config config.yaml --export-incident-report incident.json
+\`\`\`
+
+Full scope and limits: [Development handoff](docs/17_expansion_handoff.md).
+
+These enhancements live on a **development branch**, not the released main
+branch. GitHub CI is not target-device or production acceptance.
