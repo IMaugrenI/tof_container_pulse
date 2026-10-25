@@ -180,3 +180,10 @@ container_overrides:
     memory_warn_mb: 512
   my_busy_worker:
     cpu_warn_percent: 70
+
+
+# PULSE-A1: optional bounded local incident and change history.
+# Disabled by default. No remote telemetry or database required.
+history_enabled: false
+history_path: .pulse_history.json
+history_max_snapshots: 120
