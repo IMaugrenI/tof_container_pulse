@@ -52,7 +52,7 @@ def _changes(previous: list[dict], hosts: list[str], current: list[dict], at: st
             if old is None:
                 kind, details = "appeared", "Container now listed"
             else:
-                changed = [field for field in ("state", "severity", "image") if item[field] != old[field]]
+                changed = [field for field in ("name", "state", "severity", "image") if item[field] != old[field]]
                 if not changed:
                     continue
                 kind = "changed"
