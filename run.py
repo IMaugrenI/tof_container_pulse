@@ -1,4 +1,5 @@
 import argparse
+import json
 import time
 import webbrowser
 from pathlib import Path
@@ -6,7 +7,8 @@ from pathlib import Path
 from hardware_xplat import generate_hardware_pulse
 from light_mode_contrast import apply_light_panel_contrast
 from ports_xplat import generate_port_pulse
-from pulse import generate_pulse
+from pulse import _load_config, generate_pulse
+from pulse_history import acknowledge_incident
 from security_xplat import generate_security_pulse
 from services import generate_services_pulse
 from storage_xplat import generate_storage_pulse
@@ -131,6 +133,7 @@ def main() -> int:
     parser.add_argument("--security-output", default="security.html", help="Where to write the generated Security Pulse HTML file.")
     parser.add_argument("--security-template", default="security_template.html", help="Path to the Security Pulse HTML template file.")
     parser.add_argument("--config", default=None, help="Optional path to a YAML config file.")
+    parser.add_argument("--ack-incident", default=None, help="Acknowledge a retained incident ID using the configured local history; no Docker commands.")
     parser.add_argument("--state-file", default=".pulse_state.json", help="Path to the local Container Pulse state file.")
     parser.add_argument("--hardware-state-file", default=".hardware_pulse_state.json", help="Path to the local Hardware Pulse state file.")
     parser.add_argument("--ports-state-file", default=".port_pulse_state.json", help="Path to the local Port Pulse state file.")
@@ -143,6 +146,17 @@ def main() -> int:
         help="Do not open the generated Container Pulse file in the browser after a one-shot run.",
     )
     args = parser.parse_args()
+
+    if args.ack_incident is not None:
+        config = _load_config(args.config)
+        if not config.get("history_enabled"):
+            parser.error("--ack-incident requires an enabled history in --config")
+        try:
+            row = acknowledge_incident(config.get("history_path", ".pulse_history.json"), args.ack_incident)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        print(json.dumps({"id": row["id"], "acknowledged_at": row["acknowledged_at"]}))
+        return 0
 
     if args.once or args.watch is None:
         generate_suite(args)

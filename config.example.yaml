@@ -194,3 +194,13 @@ history_max_snapshots: 120
 # the mere fact that two services share a project is not dependency evidence.
 topology_enabled: true
 diagnostics_enabled: true
+
+
+# PULSE-A3/A4: When history_enabled is true, bounded CPU %, memory MiB
+# and memory % measurements are appended to the same private state file.
+# The existing --watch interval controls frequency; nothing runs in background
+# without the existing explicit watch command.
+# Incidents retain first-observed time, last observed severity, recovery time
+# and optional operator acknowledgement:
+# python3 run.py --config config.yaml --ack-incident INC-<id>
+# Note: acknowledgement is local CLI metadata, not a production access-control system.
