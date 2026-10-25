@@ -73,3 +73,26 @@ def test_invalid_metrics_not_recorded_or_drawn(tmp_path):
     assert values["cpu_percent"] is None
     assert values["memory_mb"] is None
     assert render_trends(load_history(path)) == ""
+
+
+def test_unknown_metrics_do_not_falsely_resolve_existing_incident(tmp_path):
+    path = tmp_path / "hist.json"
+    record_snapshot(path, ["local"], row(severity="warn"), at="2026-10-25T12:00:00+00:00")
+    record_snapshot(path, ["local"], row(severity="unknown", cpu=None, mem=None),
+                    at="2026-10-25T12:01:00+00:00")
+    incident = load_incidents(path)[0]
+    assert incident["resolved_at"] is None
+    assert incident["last_severity"] == "unknown"
+    record_snapshot(path, ["local"], row(severity="ok"), at="2026-10-25T12:02:00+00:00")
+    assert load_incidents(path)[0]["resolved_at"] == "2026-10-25T12:02:00+00:00"
+
+
+def test_lots_of_closed_incidents_do_not_increase_unbounded_retention():
+    from pulse_incidents import MAX_INCIDENTS, advance_incidents
+    records = [
+        {"id": f"INC-{i}", "container_key": f"key-{i}", "resolved_at": "2026-10-25",
+         "started_at": "2026-10-24", "host": "h", "name": "n"}
+        for i in range(MAX_INCIDENTS + 20)
+    ]
+    pruned = advance_incidents(records, [], [], [], "2026-10-25T12:00:00+00:00")
+    assert len(pruned) == MAX_INCIDENTS

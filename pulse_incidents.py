@@ -62,9 +62,11 @@ def advance_incidents(incidents: list[dict], previous: list[dict], hosts: list[s
                 }
                 result.append(item)
         elif existing is not None:
-            existing["resolved_at"] = timestamp
             existing["last_observed_at"] = timestamp
             existing["last_severity"] = severity
+            if severity == "ok":
+                # UNKNOWN metrics are not evidence that a prior problem recovered.
+                existing["resolved_at"] = timestamp
     for key, old in prior_seen.items():
         # A missing container is evidence only when its host's ps -a succeeded.
         if key in current:
@@ -90,8 +92,8 @@ def advance_incidents(incidents: list[dict], previous: list[dict], hosts: list[s
     if len(result) > MAX_INCIDENTS:
         open_rows = [row for row in result if row.get("resolved_at") is None]
         closed_rows = [row for row in result if row.get("resolved_at") is not None]
-        result = (closed_rows[-max(0, MAX_INCIDENTS - len(open_rows)):] + open_rows
-                  if len(open_rows) <= MAX_INCIDENTS else open_rows)
+        slots = max(0, MAX_INCIDENTS - len(open_rows))
+        result = (closed_rows[-slots:] if slots else []) + open_rows
     return result
 
 
