@@ -180,3 +180,41 @@ container_overrides:
     memory_warn_mb: 512
   my_busy_worker:
     cpu_warn_percent: 70
+
+
+# PULSE-A1: optional bounded local incident and change history.
+# Disabled by default. No remote telemetry or database required.
+history_enabled: false
+history_path: .pulse_history.json
+history_max_snapshots: 120
+
+
+# PULSE-A2: views inferred from the existing read-only Docker ps result.
+# Compose service relationships are shown ONLY when the depends_on label exists;
+# the mere fact that two services share a project is not dependency evidence.
+topology_enabled: true
+diagnostics_enabled: true
+
+
+# PULSE-A3/A4: When history_enabled is true, bounded CPU %, memory MiB
+# and memory % measurements are appended to the same private state file.
+# The existing --watch interval controls frequency; nothing runs in background
+# without the existing explicit watch command.
+# Incidents retain first-observed time, last observed severity, recovery time
+# and optional operator acknowledgement:
+# python3 run.py --config config.yaml --ack-incident INC-<id>
+# Note: acknowledgement is local CLI metadata, not a production access-control system.
+
+# A5: read-only drift from existing container snapshots; requires opted-in history.
+drift_enabled: true
+
+
+# PULSE-A8: historical host table and conservative memory growth illustration.
+# Depends on opted-in history_enabled. Never represents guaranteed prediction.
+capacity_enabled: true
+
+# PULSE-A7: optional local inbox for new and resolved incident transitions.
+# No desktop popups, external messages, cloud or OS notifications.
+# First activation only sets a baseline (does not replay old incidents).
+notices_enabled: false
+notices_path: .pulse_notices.json

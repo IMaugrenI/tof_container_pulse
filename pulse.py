@@ -7,6 +7,12 @@ from datetime import datetime
 from pathlib import Path
 
 from i18n_static import l10n_text
+from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center
+from pulse_trends import render_trends
+from pulse_drift import normalize_ports, render_drift
+from pulse_capacity import render_capacity
+from pulse_notices import refresh_notices, render_notices
+from pulse_topology import compose_labels, render_diagnostics, render_topology
 
 DEFAULT_CONFIG = {
     "refresh_seconds": 60,
@@ -15,6 +21,15 @@ DEFAULT_CONFIG = {
     "docker_timeout_seconds": 8,
     "container_overrides": {},
     "hosts": None,
+    "history_enabled": False,
+    "history_path": ".pulse_history.json",
+    "history_max_snapshots": 120,
+    "topology_enabled": True,
+    "diagnostics_enabled": True,
+    "drift_enabled": True,
+    "capacity_enabled": True,
+    "notices_enabled": False,
+    "notices_path": ".pulse_notices.json",
 }
 
 SEVERITY_ORDER = {
@@ -191,7 +206,7 @@ def _parse_mem_used_mb(mem_usage: str):
     return None
 
 
-def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html):
+def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html="", trends_html="", incidents_html="", drift_html="", capacity_html="", notices_html=""):
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
@@ -205,6 +220,14 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{UNKNOWN}}", str(int(counts.get("unknown", 0))))
     html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{item}</p>" for item in messages) or f"<p>{l10n_text('No refresh warnings.', 'Keine Aktualisierungswarnungen.')}</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
+    html_text = html_text.replace("{{HISTORY}}", history_html)
+    html_text = html_text.replace("{{TOPOLOGY}}", topology_html)
+    html_text = html_text.replace("{{DIAGNOSTICS}}", diagnostics_html)
+    html_text = html_text.replace("{{TRENDS}}", trends_html)
+    html_text = html_text.replace("{{INCIDENTS}}", incidents_html)
+    html_text = html_text.replace("{{DRIFT}}", drift_html)
+    html_text = html_text.replace("{{CAPACITY}}", capacity_html)
+    html_text = html_text.replace("{{NOTICES}}", notices_html)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
 
@@ -261,6 +284,7 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
 
     messages = []
     rendered_rows = []
+    observed = []
     counts = {"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0}
 
     base_cmd = _docker_base_command(docker_cli, docker_context)
@@ -328,6 +352,14 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                 counts["warn"] += 1
                 note_html = l10n_text("; ".join(reasons_en), "; ".join(reasons_de))
 
+        observed.append({"host": host_name, "container_id": str(row.get("ID") or name),
+                         "name": name, "state": state, "severity": severity, "image": image,
+                         "labels": compose_labels(row.get("Labels", "")),
+                         "cpu_percent": cpu_value, "memory_mb": mem_used_mb,
+                         "memory_percent": mem_perc_value,
+                         "ports": normalize_ports(row.get("Ports", "")),
+                         "compose_project": compose_labels(row.get("Labels", "")).get("project", ""),
+                         "compose_service": compose_labels(row.get("Labels", "")).get("service", "")})
         rendered_rows.append(
             (
                 SEVERITY_ORDER.get(severity, 99),
@@ -353,7 +385,7 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
 
     rendered_rows.sort(key=lambda item: (item[0], item[1], item[2]))
     rows_html = [item[3] for item in rendered_rows]
-    return rows_html, messages, counts
+    return rows_html, messages, counts, observed
 
 
 def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
@@ -370,18 +402,29 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
         messages = []
         rows_html = []
         counts = {"total": 0, "running": 0, "warn": 0, "critical": 0, "unknown": 0}
+        successful_hosts = []
+        observations = []
+        history_html = ""
+        trends_html = ""
+        incidents_html = ""
+        drift_html = ""
+        capacity_html = ""
+        notices_html = ""
+        failed_hosts = []
 
         for host in _normalized_hosts(config):
             host_name = host["name"]
             docker_context = host.get("docker_context")
             try:
-                host_rows, host_messages, host_counts = _collect_host_rows(
+                host_rows, host_messages, host_counts, host_observations = _collect_host_rows(
                     host_name=host_name,
                     docker_context=docker_context,
                     docker_cli=docker,
                     config=config,
                 )
                 rows_html.extend(host_rows)
+                successful_hosts.append(host_name)
+                observations.extend(host_observations)
                 messages.extend(host_messages)
                 counts["total"] += host_counts["total"]
                 counts["running"] += host_counts["running"]
@@ -389,7 +432,29 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 counts["critical"] += host_counts["critical"]
                 counts["unknown"] += host_counts["unknown"]
             except Exception as exc:
+                failed_hosts.append(host_name)
                 messages.append(l10n_text(f"Host {host_name}: refresh failed: {exc}", f"Host {host_name}: Aktualisierung fehlgeschlagen: {exc}"))
+
+        if config.get("history_enabled"):
+            try:
+                snapshots = record_snapshot(
+                    path=config.get("history_path", ".pulse_history.json"),
+                    hosts=successful_hosts, containers=observations,
+                    max_snapshots=int(config.get("history_max_snapshots", 120)),
+                )
+                history_html = render_incidents(snapshots)
+                trends_html = render_trends(snapshots)
+                incidents_html = render_incident_center(load_incidents(config.get("history_path", ".pulse_history.json")))
+                if config.get("drift_enabled", True):
+                    drift_html = render_drift(snapshots)
+                if config.get("capacity_enabled", True):
+                    capacity_html = render_capacity(snapshots, config.get("memory_warn_mb", 1024.0))
+                if config.get("notices_enabled", False):
+                    events = refresh_notices(config.get("notices_path", ".pulse_notices.json"),
+                                            load_incidents(config.get("history_path", ".pulse_history.json")))
+                    notices_html = render_notices(events)
+            except (OSError, ValueError, TypeError) as exc:
+                messages.append(l10n_text(f"History unavailable: {exc}", f"Verlauf nicht verfügbar: {exc}"))
 
         _render_html(
             template_path=template_path,
@@ -400,6 +465,14 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             counts=counts,
             messages=messages,
             rows_html=rows_html,
+            history_html=history_html,
+            trends_html=trends_html,
+            incidents_html=incidents_html,
+            drift_html=drift_html,
+            capacity_html=capacity_html,
+            notices_html=notices_html,
+            topology_html=render_topology(observations) if config.get("topology_enabled", True) else "",
+            diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )
         _write_last_success(state_path, generated_at)
         return True

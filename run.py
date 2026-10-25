@@ -1,4 +1,5 @@
 import argparse
+import json
 import time
 import webbrowser
 from pathlib import Path
@@ -6,7 +7,10 @@ from pathlib import Path
 from hardware_xplat import generate_hardware_pulse
 from light_mode_contrast import apply_light_panel_contrast
 from ports_xplat import generate_port_pulse
-from pulse import generate_pulse
+from pulse import _load_config, generate_pulse
+from pulse_history import acknowledge_incident
+from pulse_reports import export_report
+from pulse_suite_overview import add_suite_summary
 from security_xplat import generate_security_pulse
 from services import generate_services_pulse
 from storage_xplat import generate_storage_pulse
@@ -38,37 +42,38 @@ def generate_suite(args) -> None:
     keep the existing Linux collectors and add macOS/Windows fallback paths.
     """
 
-    generate_pulse(
+    statuses = {}
+    statuses["containers"] = generate_pulse(
         output_path=args.output,
         template_path=args.template,
         config_path=args.config,
         state_path=args.state_file,
     )
-    generate_hardware_pulse(
+    statuses["hardware"] = generate_hardware_pulse(
         output_path=args.hardware_output,
         template_path=args.hardware_template,
         config_path=args.config,
         state_path=args.hardware_state_file,
     )
-    generate_port_pulse(
+    statuses["ports"] = generate_port_pulse(
         output_path=args.ports_output,
         template_path=args.ports_template,
         config_path=args.config,
         state_path=args.ports_state_file,
     )
-    generate_storage_pulse(
+    statuses["storage"] = generate_storage_pulse(
         output_path=args.storage_output,
         template_path=args.storage_template,
         config_path=args.config,
         state_path=args.storage_state_file,
     )
-    generate_services_pulse(
+    statuses["services"] = generate_services_pulse(
         output_path=args.services_output,
         template_path=args.services_template,
         config_path=args.config,
         state_path=args.services_state_file,
     )
-    generate_security_pulse(
+    statuses["security"] = generate_security_pulse(
         output_path=args.security_output,
         template_path=args.security_template,
         config_path=args.config,
@@ -112,6 +117,7 @@ def generate_suite(args) -> None:
     apply_generated_l10n(args.storage_output)
     apply_generated_l10n(args.services_output)
     apply_generated_l10n(args.security_output)
+    add_suite_summary(args.output, statuses)
 
 
 def main() -> int:
@@ -131,6 +137,8 @@ def main() -> int:
     parser.add_argument("--security-output", default="security.html", help="Where to write the generated Security Pulse HTML file.")
     parser.add_argument("--security-template", default="security_template.html", help="Path to the Security Pulse HTML template file.")
     parser.add_argument("--config", default=None, help="Optional path to a YAML config file.")
+    parser.add_argument("--ack-incident", default=None, help="Acknowledge a retained incident ID using the configured local history; no Docker commands.")
+    parser.add_argument("--export-incident-report", metavar="FILE", default=None, help="Create anonymized local report from history, without Docker access.")
     parser.add_argument("--state-file", default=".pulse_state.json", help="Path to the local Container Pulse state file.")
     parser.add_argument("--hardware-state-file", default=".hardware_pulse_state.json", help="Path to the local Hardware Pulse state file.")
     parser.add_argument("--ports-state-file", default=".port_pulse_state.json", help="Path to the local Port Pulse state file.")
@@ -143,6 +151,28 @@ def main() -> int:
         help="Do not open the generated Container Pulse file in the browser after a one-shot run.",
     )
     args = parser.parse_args()
+
+    if args.export_incident_report is not None:
+        config = _load_config(args.config)
+        if not config.get("history_enabled"):
+            parser.error("--export-incident-report requires an enabled history in --config")
+        try:
+            result = export_report(config.get("history_path", ".pulse_history.json"), args.export_incident_report)
+        except (ValueError, OSError, TypeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.ack_incident is not None:
+        config = _load_config(args.config)
+        if not config.get("history_enabled"):
+            parser.error("--ack-incident requires an enabled history in --config")
+        try:
+            row = acknowledge_incident(config.get("history_path", ".pulse_history.json"), args.ack_incident)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        print(json.dumps({"id": row["id"], "acknowledged_at": row["acknowledged_at"]}))
+        return 0
 
     if args.once or args.watch is None:
         generate_suite(args)
