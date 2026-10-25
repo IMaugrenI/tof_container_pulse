@@ -36,3 +36,31 @@ or \`--watch 60\`). No new service, Docker permissions, or daemon are required.
 
 **Scope:** GitHub development code. Runtime validation and overall acceptance
 remain postponed until the end of the expansion phase.
+
+
+## PULSE-A6/A7 – Übergreifender Erfassungsstatus und anonymisierter Bericht
+
+Die bereits vorhandenen sechs Seiten-Generatoren melden nur ihre **Erfassungs-**
+Ergebnisse an eine Übersicht auf der bestehenden Container-Pulse-HTML-Seite.
+Diese Übersicht trifft kein Urteil über den tatsächlichen Betriebszustand und
+stellt keine Kausalbeziehung zwischen verschiedenen Systembereichen her.
+
+Ein Report wird ausschließlich auf expliziten Betreiberwunsch erzeugt:
+
+    python run.py --config config.yaml --export-incident-report incident.json
+
+Voraussetzung: \`history_enabled: true\` und gespeicherte lokale Historie.
+Der Bericht nutzt ausschließlich vorhandene Snapshots und Incidents:
+keine erneute Docker-Abfrage, keine zusätzlichen Subsystemprüfungen,
+keine Containersteuerung oder Remote-Dienste.
+
+Datensparsamkeit: Er enthält Host-Aliase statt Hostnamen und keine
+Containernamen, Images, Ports, Systempfade oder Originalfehlermeldungen.
+Mehrere offene Incidents plus auffällige Containerressourcen desselben Hosts
+werden als **Koinzidenz**, nicht als Ursachenerklärung, ausgegeben.
+Ein bereits vorhandener Dateipfad wird niemals überschrieben; das
+Zielverzeichnis muss vorher existieren. Die neu erzeugte Datei erhält
+private Schreibrechte, soweit das Betriebssystem sie unterstützt.
+
+Dies ist ein Entwicklungsnachweis in GitHub Actions und ausdrücklich keine
+Gesamt- oder Laufzeitabnahme auf Betreibergeräten.
