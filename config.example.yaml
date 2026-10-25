@@ -204,3 +204,6 @@ diagnostics_enabled: true
 # and optional operator acknowledgement:
 # python3 run.py --config config.yaml --ack-incident INC-<id>
 # Note: acknowledgement is local CLI metadata, not a production access-control system.
+
+# A5: read-only drift from existing container snapshots; requires opted-in history.
+drift_enabled: true

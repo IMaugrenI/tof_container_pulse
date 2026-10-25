@@ -156,6 +156,9 @@ def record_snapshot(path: str | Path, hosts: list[str], containers: list[dict],
         observation["cpu_percent"] = _safe_metric(item.get("cpu_percent"))
         observation["memory_mb"] = _safe_metric(item.get("memory_mb"))
         observation["memory_percent"] = _safe_metric(item.get("memory_percent"))
+        for key, limit in (("ports", 300), ("compose_project", 120), ("compose_service", 120)):
+            if key in item:
+                observation[key] = str(item[key])[:limit]
         observations.append(observation)
     timestamp = at or datetime.now(UTC).isoformat()
     previous_payload = _read_payload(path)

@@ -9,6 +9,7 @@ from pathlib import Path
 from i18n_static import l10n_text
 from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center
 from pulse_trends import render_trends
+from pulse_drift import normalize_ports, render_drift
 from pulse_topology import compose_labels, render_diagnostics, render_topology
 
 DEFAULT_CONFIG = {
@@ -23,6 +24,7 @@ DEFAULT_CONFIG = {
     "history_max_snapshots": 120,
     "topology_enabled": True,
     "diagnostics_enabled": True,
+    "drift_enabled": True,
 }
 
 SEVERITY_ORDER = {
@@ -199,7 +201,7 @@ def _parse_mem_used_mb(mem_usage: str):
     return None
 
 
-def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html="", trends_html="", incidents_html=""):
+def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html="", trends_html="", incidents_html="", drift_html=""):
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
@@ -218,6 +220,7 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{DIAGNOSTICS}}", diagnostics_html)
     html_text = html_text.replace("{{TRENDS}}", trends_html)
     html_text = html_text.replace("{{INCIDENTS}}", incidents_html)
+    html_text = html_text.replace("{{DRIFT}}", drift_html)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
 
@@ -346,7 +349,10 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                          "name": name, "state": state, "severity": severity, "image": image,
                          "labels": compose_labels(row.get("Labels", "")),
                          "cpu_percent": cpu_value, "memory_mb": mem_used_mb,
-                         "memory_percent": mem_perc_value})
+                         "memory_percent": mem_perc_value,
+                         "ports": normalize_ports(row.get("Ports", "")),
+                         "compose_project": compose_labels(row.get("Labels", "")).get("project", ""),
+                         "compose_service": compose_labels(row.get("Labels", "")).get("service", "")})
         rendered_rows.append(
             (
                 SEVERITY_ORDER.get(severity, 99),
@@ -394,6 +400,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
         history_html = ""
         trends_html = ""
         incidents_html = ""
+        drift_html = ""
         failed_hosts = []
 
         for host in _normalized_hosts(config):
@@ -429,6 +436,8 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 history_html = render_incidents(snapshots)
                 trends_html = render_trends(snapshots)
                 incidents_html = render_incident_center(load_incidents(config.get("history_path", ".pulse_history.json")))
+                if config.get("drift_enabled", True):
+                    drift_html = render_drift(snapshots)
             except (OSError, ValueError, TypeError) as exc:
                 messages.append(l10n_text(f"History unavailable: {exc}", f"Verlauf nicht verfügbar: {exc}"))
 
@@ -444,6 +453,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             history_html=history_html,
             trends_html=trends_html,
             incidents_html=incidents_html,
+            drift_html=drift_html,
             topology_html=render_topology(observations) if config.get("topology_enabled", True) else "",
             diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )
