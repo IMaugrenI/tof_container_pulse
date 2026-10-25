@@ -19,8 +19,10 @@ _LABEL = re.compile(r"(?:^|,)com\.docker\.compose\.(project|service|depends_on)=
 
 def compose_labels(raw: object) -> dict[str, str]:
     if isinstance(raw, dict):
+        # Collector already normalizes fields; tests and other callers can also
+        # supply standard fully qualified Docker label dictionaries.
         return {
-            key: str(raw.get("com.docker.compose." + key, ""))[:160]
+            key: str(raw.get(key) or raw.get("com.docker.compose." + key, ""))[:160]
             for key in ("project", "service", "depends_on")
         }
     value = str(raw or "")[:4096]
@@ -29,7 +31,22 @@ def compose_labels(raw: object) -> dict[str, str]:
     for index, match in enumerate(matches):
         ending = matches[index + 1].start() if index + 1 < len(matches) else len(value)
         content = value[match.end():ending].strip(", ")
-        result[match.group(1)] = content[:160]
+        key = match.group(1)
+        if key in ("project", "service"):
+            # Only a single label value, never a following unrelated label.
+            content = content.split(",", 1)[0]
+        else:
+            # Accept only explicit dependency entries rather than arbitrary
+            # trailing Docker labels, which may contain sensitive information.
+            tokens = []
+            for part in content.split(","):
+                part = part.strip()
+                if re.fullmatch(r"[a-zA-Z0-9_.-]{1,80}:service_(?:started|healthy|completed_successfully):(true|false)", part):
+                    tokens.append(part)
+                else:
+                    break
+            content = ",".join(tokens)
+        result[key] = content[:160]
     return result
 
 
