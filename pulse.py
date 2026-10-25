@@ -10,6 +10,8 @@ from i18n_static import l10n_text
 from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center
 from pulse_trends import render_trends
 from pulse_drift import normalize_ports, render_drift
+from pulse_capacity import render_capacity
+from pulse_notices import refresh_notices, render_notices
 from pulse_topology import compose_labels, render_diagnostics, render_topology
 
 DEFAULT_CONFIG = {
@@ -25,6 +27,9 @@ DEFAULT_CONFIG = {
     "topology_enabled": True,
     "diagnostics_enabled": True,
     "drift_enabled": True,
+    "capacity_enabled": True,
+    "notices_enabled": False,
+    "notices_path": ".pulse_notices.json",
 }
 
 SEVERITY_ORDER = {
@@ -201,7 +206,7 @@ def _parse_mem_used_mb(mem_usage: str):
     return None
 
 
-def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html="", trends_html="", incidents_html="", drift_html=""):
+def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html="", trends_html="", incidents_html="", drift_html="", capacity_html="", notices_html=""):
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
@@ -221,6 +226,8 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{TRENDS}}", trends_html)
     html_text = html_text.replace("{{INCIDENTS}}", incidents_html)
     html_text = html_text.replace("{{DRIFT}}", drift_html)
+    html_text = html_text.replace("{{CAPACITY}}", capacity_html)
+    html_text = html_text.replace("{{NOTICES}}", notices_html)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
 
@@ -401,6 +408,8 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
         trends_html = ""
         incidents_html = ""
         drift_html = ""
+        capacity_html = ""
+        notices_html = ""
         failed_hosts = []
 
         for host in _normalized_hosts(config):
@@ -438,6 +447,12 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 incidents_html = render_incident_center(load_incidents(config.get("history_path", ".pulse_history.json")))
                 if config.get("drift_enabled", True):
                     drift_html = render_drift(snapshots)
+                if config.get("capacity_enabled", True):
+                    capacity_html = render_capacity(snapshots, config.get("memory_warn_mb", 1024.0))
+                if config.get("notices_enabled", False):
+                    events = refresh_notices(config.get("notices_path", ".pulse_notices.json"),
+                                            load_incidents(config.get("history_path", ".pulse_history.json")))
+                    notices_html = render_notices(events)
             except (OSError, ValueError, TypeError) as exc:
                 messages.append(l10n_text(f"History unavailable: {exc}", f"Verlauf nicht verfügbar: {exc}"))
 
@@ -454,6 +469,8 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             trends_html=trends_html,
             incidents_html=incidents_html,
             drift_html=drift_html,
+            capacity_html=capacity_html,
+            notices_html=notices_html,
             topology_html=render_topology(observations) if config.get("topology_enabled", True) else "",
             diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )

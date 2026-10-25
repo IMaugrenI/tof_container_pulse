@@ -64,3 +64,23 @@ private Schreibrechte, soweit das Betriebssystem sie unterstützt.
 
 Dies ist ein Entwicklungsnachweis in GitHub Actions und ausdrücklich keine
 Gesamt- oder Laufzeitabnahme auf Betreibergeräten.
+
+
+## PULSE-A7/A8 – lokale Hinweise und Kapazitätsorientierung
+
+- Ein optionales \`notices_enabled: true\` speichert ausschließlich neue
+  und abgeschlossene Incident-Übergänge in einer begrenzten lokalen JSON-Ablage
+  (\`notices_path\`). Die erste Aktivierung markiert vorhandene Vorfälle nur
+  als Ausgangszustand. Ohne opt-in bleibt die Ablage deaktiviert.
+- Keine E-Mails, Desktop-Popups, Messenger-Automation, Cloud oder automatische
+  Reparatur. Meldungen erscheinen in der statischen Übersicht.
+- Eine Host-Tabelle zeigt je erfolgreich beobachtetem Docker-Context die
+  letzte erfolgreiche Erfassung und die Anzahl von Warnungen, kritischen und
+  unbekannten Containern. Ohne erfolgreiche Beobachtung keine erfundenen Werte.
+- Eine beschränkte Trendhochrechnung für Speicher nähert nur unter stabilen
+  Beobachtungsbedingungen eine Zeit bis zu einem **vom Betreiber konfigurierten**
+  Grenzwert an. Bei wenigen/fehlenden Daten bleibt die Schätzung leer.
+  Das Ergebnis ist ein rechnerischer Anhaltspunkt, **keine verlässliche Prognose**.
+- Beide Funktionen benutzen die bereits vorhandenen und begrenzten Snapshots
+  und eröffnen keine neue Runtime. Nachweise nur Entwicklung; Gesamt-Abnahme
+  am Ende des Ausbaumodus.

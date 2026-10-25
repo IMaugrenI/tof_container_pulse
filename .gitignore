@@ -44,3 +44,6 @@ Thumbs.db
 
 # Optional local snapshot and incident history
 .pulse_history.json
+
+# Opt-in local notifications (never commit observed incidents)
+.pulse_notices.json

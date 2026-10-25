@@ -207,3 +207,14 @@ diagnostics_enabled: true
 
 # A5: read-only drift from existing container snapshots; requires opted-in history.
 drift_enabled: true
+
+
+# PULSE-A8: historical host table and conservative memory growth illustration.
+# Depends on opted-in history_enabled. Never represents guaranteed prediction.
+capacity_enabled: true
+
+# PULSE-A7: optional local inbox for new and resolved incident transitions.
+# No desktop popups, external messages, cloud or OS notifications.
+# First activation only sets a baseline (does not replay old incidents).
+notices_enabled: false
+notices_path: .pulse_notices.json
