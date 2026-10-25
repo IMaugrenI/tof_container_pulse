@@ -10,6 +10,7 @@ from ports_xplat import generate_port_pulse
 from pulse import _load_config, generate_pulse
 from pulse_history import acknowledge_incident
 from pulse_reports import export_report
+from pulse_suite_overview import add_suite_summary
 from security_xplat import generate_security_pulse
 from services import generate_services_pulse
 from storage_xplat import generate_storage_pulse
@@ -41,37 +42,38 @@ def generate_suite(args) -> None:
     keep the existing Linux collectors and add macOS/Windows fallback paths.
     """
 
-    generate_pulse(
+    statuses = {}
+    statuses["containers"] = generate_pulse(
         output_path=args.output,
         template_path=args.template,
         config_path=args.config,
         state_path=args.state_file,
     )
-    generate_hardware_pulse(
+    statuses["hardware"] = generate_hardware_pulse(
         output_path=args.hardware_output,
         template_path=args.hardware_template,
         config_path=args.config,
         state_path=args.hardware_state_file,
     )
-    generate_port_pulse(
+    statuses["ports"] = generate_port_pulse(
         output_path=args.ports_output,
         template_path=args.ports_template,
         config_path=args.config,
         state_path=args.ports_state_file,
     )
-    generate_storage_pulse(
+    statuses["storage"] = generate_storage_pulse(
         output_path=args.storage_output,
         template_path=args.storage_template,
         config_path=args.config,
         state_path=args.storage_state_file,
     )
-    generate_services_pulse(
+    statuses["services"] = generate_services_pulse(
         output_path=args.services_output,
         template_path=args.services_template,
         config_path=args.config,
         state_path=args.services_state_file,
     )
-    generate_security_pulse(
+    statuses["security"] = generate_security_pulse(
         output_path=args.security_output,
         template_path=args.security_template,
         config_path=args.config,
@@ -115,6 +117,7 @@ def generate_suite(args) -> None:
     apply_generated_l10n(args.storage_output)
     apply_generated_l10n(args.services_output)
     apply_generated_l10n(args.security_output)
+    add_suite_summary(args.output, statuses)
 
 
 def main() -> int:
