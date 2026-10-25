@@ -9,7 +9,7 @@ def test_six_page_statuses_never_become_health_claims():
     assert "4 of 6 collectors completed" in html
     assert "Collection status is not system health" in html
     assert "Erfassung fehlgeschlagen" in html
-    assert html.count("<tr>") == 6
+    assert html.count("<tr>") == 7  # heading row plus six collector results
 
 
 def test_suite_injection_is_idempotent_and_changes_only_generated_html(tmp_path):
