@@ -16,7 +16,7 @@ def test_image_and_port_drift_after_recreation(tmp_path):
     record_snapshot(f,["local"],[item("new","app:v2","8443->443/tcp")],at="2026-10-25T10:01:00+00:00")
     result=detect_drift(load_history(f))
     assert len(result)==1 and set(result[0]["fields"])=={"image","ports","recreated"}
-    assert "8443->443/tcp" in render_drift(load_history(f))
+    assert "8443-&gt;443/tcp" in render_drift(load_history(f))
 
 def test_unknown_host_does_not_infer_drift(tmp_path):
     f=tmp_path/"hist.json"
