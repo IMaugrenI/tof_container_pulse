@@ -187,3 +187,10 @@ container_overrides:
 history_enabled: false
 history_path: .pulse_history.json
 history_max_snapshots: 120
+
+
+# PULSE-A2: views inferred from the existing read-only Docker ps result.
+# Compose service relationships are shown ONLY when the depends_on label exists;
+# the mere fact that two services share a project is not dependency evidence.
+topology_enabled: true
+diagnostics_enabled: true

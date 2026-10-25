@@ -8,6 +8,7 @@ from pathlib import Path
 
 from i18n_static import l10n_text
 from pulse_history import record_snapshot, render_incidents
+from pulse_topology import compose_labels, render_diagnostics, render_topology
 
 DEFAULT_CONFIG = {
     "refresh_seconds": 60,
@@ -19,6 +20,8 @@ DEFAULT_CONFIG = {
     "history_enabled": False,
     "history_path": ".pulse_history.json",
     "history_max_snapshots": 120,
+    "topology_enabled": True,
+    "diagnostics_enabled": True,
 }
 
 SEVERITY_ORDER = {
@@ -195,7 +198,7 @@ def _parse_mem_used_mb(mem_usage: str):
     return None
 
 
-def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html=""):
+def _render_html(template_path, output_path, generated_at, previous_last_success, refresh_seconds, counts, messages, rows_html, history_html="", topology_html="", diagnostics_html=""):
     template = Path(template_path).read_text(encoding="utf-8")
     html_text = template
     html_text = html_text.replace("{{TITLE}}", "CONTAINER PULSE")
@@ -210,6 +213,8 @@ def _render_html(template_path, output_path, generated_at, previous_last_success
     html_text = html_text.replace("{{MESSAGES}}", "".join(f"<p>{item}</p>" for item in messages) or f"<p>{l10n_text('No refresh warnings.', 'Keine Aktualisierungswarnungen.')}</p>")
     html_text = html_text.replace("{{ROWS}}", "\n".join(rows_html))
     html_text = html_text.replace("{{HISTORY}}", history_html)
+    html_text = html_text.replace("{{TOPOLOGY}}", topology_html)
+    html_text = html_text.replace("{{DIAGNOSTICS}}", diagnostics_html)
     Path(output_path).write_text(html_text, encoding="utf-8")
 
 
@@ -335,7 +340,8 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
                 note_html = l10n_text("; ".join(reasons_en), "; ".join(reasons_de))
 
         observed.append({"host": host_name, "container_id": str(row.get("ID") or name),
-                         "name": name, "state": state, "severity": severity, "image": image})
+                         "name": name, "state": state, "severity": severity, "image": image,
+                         "labels": compose_labels(row.get("Labels", ""))})
         rendered_rows.append(
             (
                 SEVERITY_ORDER.get(severity, 99),
@@ -381,6 +387,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
         successful_hosts = []
         observations = []
         history_html = ""
+        failed_hosts = []
 
         for host in _normalized_hosts(config):
             host_name = host["name"]
@@ -402,6 +409,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 counts["critical"] += host_counts["critical"]
                 counts["unknown"] += host_counts["unknown"]
             except Exception as exc:
+                failed_hosts.append(host_name)
                 messages.append(l10n_text(f"Host {host_name}: refresh failed: {exc}", f"Host {host_name}: Aktualisierung fehlgeschlagen: {exc}"))
 
         if config.get("history_enabled"):
@@ -425,6 +433,8 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             messages=messages,
             rows_html=rows_html,
             history_html=history_html,
+            topology_html=render_topology(observations) if config.get("topology_enabled", True) else "",
+            diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )
         _write_last_success(state_path, generated_at)
         return True

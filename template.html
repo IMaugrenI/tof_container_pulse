@@ -564,6 +564,10 @@
       line-height: 1.35;
     }
 
+    .pulse-topology, .pulse-diagnostics, .pulse-history { margin-top: 24px; padding: 16px; border: 1px solid var(--panel-line); border-radius: var(--radius-lg); overflow-wrap: anywhere; }
+    .pulse-topology-group { margin: 12px 0; padding: 12px; background: var(--panel-soft); border-radius: 12px; }
+    .pulse-topology h3 { color: var(--text-strong); font-size: 15px; }
+    .pulse-topology li, .pulse-diagnostics li { line-height: 1.7; }
     .footer-note {
       margin: 18px 0 0;
       color: var(--muted-2);
@@ -663,6 +667,8 @@
         {{MESSAGES}}
       </section>
 
+      {{DIAGNOSTICS}}
+      {{TOPOLOGY}}
       {{HISTORY}}
 
       <section class="table-title" aria-label="Your containers title">
