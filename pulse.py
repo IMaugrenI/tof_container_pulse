@@ -8,7 +8,7 @@ from pathlib import Path
 
 from i18n_static import l10n_text
 from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center
-from pulse_trends import render_trends
+from pulse_trends import render_anomalies, render_trends
 from pulse_drift import normalize_ports, render_drift
 from pulse_capacity import render_capacity
 from pulse_notices import refresh_notices, render_notices
@@ -449,7 +449,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                     max_snapshots=int(config.get("history_max_snapshots", 120)),
                 )
                 history_html = render_incidents(snapshots)
-                trends_html = render_trends(snapshots)
+                trends_html = render_trends(snapshots) + render_anomalies(snapshots)
                 incidents_html = render_incident_center(load_incidents(config.get("history_path", ".pulse_history.json")))
                 if config.get("drift_enabled", True):
                     drift_html = render_drift(snapshots)
