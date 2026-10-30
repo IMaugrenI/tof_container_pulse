@@ -8,6 +8,7 @@ from hardware_xplat import generate_hardware_pulse
 from light_mode_contrast import apply_light_panel_contrast
 from ports_xplat import generate_port_pulse
 from pulse import _load_config, generate_pulse
+from pulse_explain import explain_incidents_locally
 from pulse_history import acknowledge_incident
 from pulse_reports import export_report
 from pulse_suite_overview import add_suite_summary
@@ -148,6 +149,10 @@ def main() -> int:
     parser.add_argument("--config", default=None, help="Optional path to a YAML config file.")
     parser.add_argument("--ack-incident", default=None, help="Acknowledge a retained incident ID using the configured local history; no Docker commands.")
     parser.add_argument("--export-incident-report", metavar="FILE", default=None, help="Create anonymized local report from history, without Docker access.")
+    parser.add_argument("--explain-incidents", action="store_true",
+                        help="Manually ask a preinstalled loopback-only Ollama model to explain the anonymized saved history.")
+    parser.add_argument("--explain-model", default=None,
+                        help="Name of an existing local Ollama model; required for --explain-incidents.")
     parser.add_argument("--state-file", default=".pulse_state.json", help="Path to the local Container Pulse state file.")
     parser.add_argument("--hardware-state-file", default=".hardware_pulse_state.json", help="Path to the local Hardware Pulse state file.")
     parser.add_argument("--ports-state-file", default=".port_pulse_state.json", help="Path to the local Port Pulse state file.")
@@ -160,6 +165,21 @@ def main() -> int:
         help="Do not open the generated Container Pulse file in the browser after a one-shot run.",
     )
     args = parser.parse_args()
+
+    if args.explain_incidents:
+        config = _load_config(args.config)
+        if not config.get("history_enabled") or not config.get("local_explanation_enabled"):
+            parser.error("--explain-incidents requires history_enabled and local_explanation_enabled in --config")
+        if not args.explain_model:
+            parser.error("--explain-incidents requires --explain-model")
+        try:
+            result = explain_incidents_locally(
+                config.get("history_path", ".pulse_history.json"), args.explain_model
+            )
+        except (ValueError, OSError, UnicodeError, TimeoutError) as exc:
+            parser.error(str(exc))
+        print(result)
+        return 0
 
     if args.export_incident_report is not None:
         config = _load_config(args.config)
