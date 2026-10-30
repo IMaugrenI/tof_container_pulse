@@ -30,6 +30,9 @@ def collection_quality(name: str, result: object, docker: dict | None = None,
     if name == "services" and services is not None:
         if not services:
             return "not_configured", "no checks configured", "keine Prüfungen konfiguriert"
+        recognized = {"ok", "warn", "critical"}
+        if not any(item.get("severity") in recognized for item in services):
+            return "unavailable", "no evaluable check results", "keine auswertbaren Prüfergebnisse"
         if any(item.get("severity") == "unknown" for item in services):
             return "partial", "checks include unknown results", "Prüfungen mit unbekannten Ergebnissen"
     return "collected", "refreshed", "aktualisiert"
