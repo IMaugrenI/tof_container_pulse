@@ -19,6 +19,8 @@ from pulse_incidents import advance_incidents, duration_label
 VERSION = 1
 MAX_SNAPSHOTS = 240
 MAX_BYTES = 2_000_000
+MAX_APP_SNAPSHOTS = 60
+MAX_APP_CHECKS = 100
 
 
 def _read_payload(path: str | Path) -> dict:
@@ -35,6 +37,8 @@ def _read_payload(path: str | Path) -> dict:
         raise ValueError("History snapshots are invalid")
     if not isinstance(payload.get("incidents", []), list):
         raise ValueError("History incidents are invalid")
+    if not isinstance(payload.get("application_snapshots", []), list):
+        raise ValueError("History application snapshots are invalid")
     return payload
 
 
@@ -44,6 +48,64 @@ def load_history(path: str | Path) -> list[dict]:
 
 def load_incidents(path: str | Path) -> list[dict]:
     return _read_payload(path).get("incidents", [])
+
+
+def load_application_history(path: str | Path) -> list[dict]:
+    """Return local-only app observations, not Docker host observations."""
+    return _read_payload(path).get("application_snapshots", [])
+
+
+def record_application_snapshot(path: str | Path, entries: list[dict],
+                                at: str | None = None, max_snapshots: int = MAX_APP_SNAPSHOTS) -> list[dict]:
+    """Store explicitly enabled application samples in the existing private history.
+
+    Caller must gate on successful Services collection, enabled Docker history,
+    and separate application_history_enabled. No new network calls or files.
+    """
+    if not isinstance(entries, list) or len(entries) > MAX_APP_CHECKS:
+        raise ValueError("Application history supports at most 100 checks")
+    if isinstance(max_snapshots, bool) or not isinstance(max_snapshots, int) or not 1 <= max_snapshots <= MAX_APP_SNAPSHOTS:
+        raise ValueError("application_history_max_snapshots must be between 1 and 60")
+    if not entries:
+        return load_application_history(path)
+    observed_at = at or datetime.now(UTC).isoformat()
+    try:
+        when = datetime.fromisoformat(observed_at)
+        if when.tzinfo is None or when.utcoffset() is None:
+            raise ValueError("naive timestamp")
+    except (ValueError, TypeError) as exc:
+        raise ValueError("Application collection timestamp must contain a timezone") from exc
+
+    sanitized = []
+    names = set()
+    for item in entries:
+        if not isinstance(item, dict):
+            raise ValueError("Application check must be a mapping")
+        name = str(item.get("name", ""))[:120].strip()
+        if not name or name.casefold() in names:
+            raise ValueError("Application history requires distinct, nonempty check names")
+        names.add(name.casefold())
+        severity = str(item.get("severity", "unknown"))
+        severity = severity if severity in ("ok", "warn", "critical", "unknown") else "unknown"
+        check_type = str(item.get("type", "unknown"))
+        check_type = check_type if check_type in ("url", "tcp", "heartbeat", "http", "file_age") else "unknown"
+        state = str(item.get("state", "unknown"))
+        state = state if state in ("up", "down", "review", "open", "closed", "fresh", "stale", "missing", "slow") else "unknown"
+        latency = _safe_metric(item.get("latency_ms"))
+        latency = latency if latency is not None and latency <= 120000 else None
+        sanitized.append({"name": name, "type": check_type, "state": state,
+                          "severity": severity, "latency_ms": latency,
+                          "quality": "unknown" if severity == "unknown" else "observed"})
+    payload = _read_payload(path)
+    previous = payload.get("application_snapshots", [])
+    snapshots = (previous + [{"at": observed_at, "scope": "suite_local",
+                              "checks": sanitized}])[-max_snapshots:]
+    payload["application_snapshots"] = snapshots
+    # Under storage pressure, prune only app history; preserve Docker and incidents.
+    while len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_BYTES and len(snapshots) > 1:
+        snapshots.pop(0)
+    _write_payload(path, payload)
+    return snapshots
 
 
 def _key(row: dict) -> tuple[str, str]:
@@ -169,7 +231,12 @@ def record_snapshot(path: str | Path, hosts: list[str], containers: list[dict],
         "events": _changes(prior, hosts, observations, timestamp),
     }
     snapshots = (prior + [entry])[-int(max_snapshots):]
-    payload = {"version": VERSION, "snapshots": snapshots, "incidents": incidents}
+    payload = {"version": VERSION, "snapshots": snapshots, "incidents": incidents,
+               "application_snapshots": previous_payload.get("application_snapshots", [])}
+    # Preserve the legacy Docker/incident storage budget before pruning those records.
+    app_snapshots = payload["application_snapshots"]
+    while len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_BYTES and app_snapshots:
+        app_snapshots.pop(0)
     # Prefer pruning old resolved incidents over dropping active incidents.
     while len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_BYTES:
         closed = [r for r in incidents if r.get("resolved_at") is not None]
