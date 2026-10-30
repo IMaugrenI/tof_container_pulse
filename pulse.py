@@ -12,7 +12,7 @@ from pulse_trends import render_anomalies, render_trends
 from pulse_drift import normalize_ports, render_drift
 from pulse_capacity import render_capacity
 from pulse_notices import refresh_notices, render_notices
-from pulse_topology import compose_labels, render_diagnostics, render_topology
+from pulse_topology import compose_labels, render_diagnostics, render_topology, topology_data
 
 DEFAULT_CONFIG = {
     "refresh_seconds": 60,
@@ -489,6 +489,19 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 {"host": item["host"], "project": item.get("compose_project", ""),
                  "service": item.get("compose_service", ""), "severity": item["severity"]}
                 for item in observations[:1500]
+            ]
+            # Reuse explicit Compose labels already collected by Docker ps.
+            # The shared topology is in-process only, never saved in history.
+            groups = topology_data(observations)["projects"]
+            observation_sink["projects"] = [
+                {"host": g["host"], "project": g["project"],
+                 "services": [
+                     {"service": svc,
+                      "severities": sorted({i["severity"] for i in instances})}
+                     for svc, instances in sorted(g["services"].items())[:60]
+                 ],
+                 "edges": g["edges"][:100]}
+                for g in groups[:30]
             ]
         return True
     except Exception as exc:
