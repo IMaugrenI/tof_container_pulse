@@ -1,4 +1,5 @@
 """Targeted tests for application-observation reuse and URL-check boundaries."""
+import urllib.request
 from unittest.mock import patch
 
 import pytest
@@ -71,7 +72,9 @@ def test_successful_url_check_shares_only_redacted_target():
                          DEFAULT_SERVICES_CONFIG)
     assert row.severity == "ok"
     assert row.target == "http://localhost:8080"
-    assert isinstance(build_opener.call_args.args[0], _NoRedirectHandler)
+    assert any(isinstance(arg, _NoRedirectHandler) for arg in build_opener.call_args.args)
+    assert any(isinstance(arg, urllib.request.ProxyHandler) and not arg.proxies
+               for arg in build_opener.call_args.args)
 
 
 def test_service_checks_bounded_before_collecting():
@@ -97,3 +100,28 @@ def test_existing_service_generator_can_supply_inprocess_evidence():
     assert sink["entries"] == [
         {"name": "model", "type": "url", "state": "up", "severity": "ok", "latency_ms": 9.1}
     ]
+
+
+def test_loopback_check_does_not_trust_dns_names_starting_with_127():
+    from services import _is_local_url
+
+    for url in ("http://127.bad.example/private", "http://127.evil.test/",
+                "http://127.0.0.1.attacker.example/", "http://example.com/"):
+        assert not _is_local_url(url)
+        with patch("services.urllib.request.build_opener") as build_opener:
+            result = _check_url({"url": url}, DEFAULT_SERVICES_CONFIG)
+        assert result.severity == "unknown"
+        build_opener.assert_not_called()
+
+    for url in ("http://localhost:8000/", "http://127.0.0.1:8080/",
+                "http://127.25.1.8/", "http://[::1]:5000/"):
+        assert _is_local_url(url)
+
+
+def test_string_valued_external_optin_does_not_enable_network_access():
+    for bogus in ("true", "false", "yes", 1, 0, None):
+        with patch("services.urllib.request.build_opener") as build_opener:
+            result = _check_url({"url": "https://external.example/", "allow_external": bogus},
+                                DEFAULT_SERVICES_CONFIG)
+        assert result.severity == "unknown"
+        build_opener.assert_not_called()

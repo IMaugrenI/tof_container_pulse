@@ -1,5 +1,7 @@
 import html
+import ipaddress
 import json
+import math
 import socket
 import time
 import urllib.error
@@ -86,12 +88,14 @@ def _overall(entries):
 
 
 def _is_local_url(url):
+    """Only actual loopback IP literals or the exact localhost name are local."""
     try:
-        parsed = urlparse(url)
-    except Exception:
+        host = urlparse(url).hostname or ""
+        if host == "localhost":
+            return True
+        return ipaddress.ip_address(host).is_loopback
+    except (TypeError, ValueError):
         return False
-    host = parsed.hostname or ""
-    return host in LOCAL_HOSTS or host.startswith("127.")
 
 
 def _target_from_check(check):
@@ -153,11 +157,27 @@ def _bounded_timeout(check, config) -> float:
     return seconds
 
 
+def _latency_warning_limit(check) -> float | None:
+    """Optional warning threshold in milliseconds, never an uptime verdict."""
+    raw = check.get("latency_warn_ms")
+    if raw is None:
+        return None
+    try:
+        limit = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid latency_warn_ms") from exc
+    if not math.isfinite(limit) or not 1 <= limit <= 120000:
+        raise ValueError("latency_warn_ms must be 1-120000 milliseconds")
+    return limit
+
+
 def _check_url(check, config):
     name = str(check.get("name") or "HTTP check")
     url = str(check.get("url") or "")
     timeout = _bounded_timeout(check, config)
-    allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
+    latency_warning = _latency_warning_limit(check)
+    # Only an actual YAML boolean true authorizes non-loopback network requests.
+    allow_external = check.get("allow_external", config.get("service_allow_external_urls", False)) is True
     expected_status = int(check.get("expected_status", 200))
 
     display_target = _safe_url_target(url)
@@ -186,7 +206,9 @@ def _check_url(check, config):
     start = time.monotonic()
     try:
         # Redirects require a separately configured check; never follow implicitly.
-        with urllib.request.build_opener(_NoRedirectHandler()).open(request, timeout=timeout) as response:
+        with urllib.request.build_opener(
+            urllib.request.ProxyHandler({}), _NoRedirectHandler()
+        ).open(request, timeout=timeout) as response:
             latency_ms = (time.monotonic() - start) * 1000.0
             status = int(response.getcode())
     except urllib.error.HTTPError as exc:
@@ -207,17 +229,21 @@ def _check_url(check, config):
         )
 
     if status == expected_status:
+        slow = latency_warning is not None and latency_ms >= latency_warning
         return ServiceEntry(
             name=name,
             check_type="url",
             target=display_target,
-            state="up",
-            severity="ok",
+            state="slow" if slow else "up",
+            severity="warn" if slow else "ok",
             latency_ms=latency_ms,
-            note=l10n_text(
+            note=(l10n_text(
+                f"HTTP answered as expected but response took {latency_ms:.0f} ms; configured warning at {latency_warning:g} ms.",
+                f"HTTP antwortet wie erwartet, benötigte aber {latency_ms:.0f} ms; Warnschwelle {latency_warning:g} ms."
+            ) if slow else l10n_text(
                 f"HTTP responded with expected status {status}.",
                 f"HTTP antwortete mit erwartetem Status {status}.",
-            ),
+            )),
         )
     return ServiceEntry(
         name=name,
@@ -238,9 +264,14 @@ def _check_tcp(check, config):
     host = str(check.get("host") or "localhost")
     port = check.get("port")
     timeout = _bounded_timeout(check, config)
+    latency_warning = _latency_warning_limit(check)
     try:
+        if isinstance(port, bool):
+            raise ValueError("Invalid TCP port")
         port_int = int(port)
-    except Exception:
+        if not 1 <= port_int <= 65535:
+            raise ValueError("TCP port is out of range")
+    except (TypeError, ValueError, OverflowError):
         return _entry_unknown(name, "tcp", f"{host}:{port}", "No valid TCP port configured.", "Kein gültiger TCP-Port konfiguriert.")
 
     start = time.monotonic()
@@ -261,17 +292,21 @@ def _check_tcp(check, config):
             ),
         )
 
+    slow = latency_warning is not None and latency_ms >= latency_warning
     return ServiceEntry(
         name=name,
         check_type="tcp",
         target=f"{host}:{port_int}",
-        state="open",
-        severity="ok",
+        state="slow" if slow else "open",
+        severity="warn" if slow else "ok",
         latency_ms=latency_ms,
-        note=l10n_text(
+        note=(l10n_text(
+            f"TCP accepted the connection but took {latency_ms:.0f} ms; warning at {latency_warning:g} ms.",
+            f"TCP-Verbindung angenommen, aber {latency_ms:.0f} ms; Warnschwelle {latency_warning:g} ms."
+        ) if slow else l10n_text(
             "TCP port accepted a connection.",
             "TCP-Port hat eine Verbindung angenommen.",
-        ),
+        )),
     )
 
 
@@ -424,6 +459,7 @@ def _state_label(state):
         "closed": ("closed", "geschlossen"),
         "fresh": ("fresh", "frisch"),
         "stale": ("stale", "alt"),
+        "slow": ("slow", "langsam"),
         "missing": ("missing", "fehlt"),
         "unknown": ("unknown", "unbekannt"),
     }

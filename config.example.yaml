@@ -102,14 +102,21 @@ service_checks: []
 #     type: url
 #     url: http://127.0.0.1:8080/health
 #     expected_status: 200
+#     latency_warn_ms: 500  # optional: slow but successful HTTP => WARN
 #   - name: Local API TCP
 #     type: tcp
 #     host: 127.0.0.1
 #     port: 8000
+#     latency_warn_ms: 250  # optional: slow but successful TCP => WARN
 #   - name: Bot heartbeat
 #     type: heartbeat
 #     path: /tmp/my_bot.heartbeat
 #     max_age_seconds: 300
+#
+# latency_warn_ms is opt-in per HTTP/TCP check, accepts 1..120000 ms.
+# An answer can be successful but slow (WARN). Failed connectivity remains CRITICAL;
+# unconfigured / invalid thresholds must not be interpreted as healthy applications.
+# Suite collection timestamps refer to collection completion, not individual sample times.
 #
 # External URL checks are disabled by default to avoid surprise network calls.
 # To intentionally check an outside URL, set allow_external: true on that check.
