@@ -260,8 +260,12 @@ def _check_tcp(check, config):
     timeout = _bounded_timeout(check, config)
     latency_warning = _latency_warning_limit(check)
     try:
+        if isinstance(port, bool):
+            raise ValueError("Invalid TCP port")
         port_int = int(port)
-    except Exception:
+        if not 1 <= port_int <= 65535:
+            raise ValueError("TCP port is out of range")
+    except (TypeError, ValueError, OverflowError):
         return _entry_unknown(name, "tcp", f"{host}:{port}", "No valid TCP port configured.", "Kein gültiger TCP-Port konfiguriert.")
 
     start = time.monotonic()
