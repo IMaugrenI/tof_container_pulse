@@ -1,4 +1,5 @@
 import html
+import ipaddress
 import json
 import math
 import socket
@@ -87,12 +88,14 @@ def _overall(entries):
 
 
 def _is_local_url(url):
+    """Only actual loopback IP literals or the exact localhost name are local."""
     try:
-        parsed = urlparse(url)
-    except Exception:
+        host = urlparse(url).hostname or ""
+        if host == "localhost":
+            return True
+        return ipaddress.ip_address(host).is_loopback
+    except (TypeError, ValueError):
         return False
-    host = parsed.hostname or ""
-    return host in LOCAL_HOSTS or host.startswith("127.")
 
 
 def _target_from_check(check):
@@ -173,7 +176,8 @@ def _check_url(check, config):
     url = str(check.get("url") or "")
     timeout = _bounded_timeout(check, config)
     latency_warning = _latency_warning_limit(check)
-    allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
+    # Only an actual YAML boolean true authorizes non-loopback network requests.
+    allow_external = check.get("allow_external", config.get("service_allow_external_urls", False)) is True
     expected_status = int(check.get("expected_status", 200))
 
     display_target = _safe_url_target(url)
@@ -202,7 +206,9 @@ def _check_url(check, config):
     start = time.monotonic()
     try:
         # Redirects require a separately configured check; never follow implicitly.
-        with urllib.request.build_opener(_NoRedirectHandler()).open(request, timeout=timeout) as response:
+        with urllib.request.build_opener(
+            urllib.request.ProxyHandler({}), _NoRedirectHandler()
+        ).open(request, timeout=timeout) as response:
             latency_ms = (time.monotonic() - start) * 1000.0
             status = int(response.getcode())
     except urllib.error.HTTPError as exc:
