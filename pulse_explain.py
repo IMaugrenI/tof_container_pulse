@@ -117,5 +117,8 @@ def explain_incidents_locally(history_path: str, model: str, timeout_seconds: fl
     if not isinstance(answer, str) or not answer.strip():
         raise ValueError("Local model returned no explanation")
     # Strip control codes so a model cannot inject terminal instructions.
-    filtered = "".join(c for c in answer if c in "\n\t" or ord(c) >= 32)
+    filtered = "".join(
+        c for c in answer
+        if c in "\n\t" or (ord(c) >= 32 and not 0x7F <= ord(c) <= 0x9F)
+    )
     return "Hinweis: automatisch erzeugte, ungeprüfte Erklärung – keine Ursachenfeststellung.\n" + filtered.strip()[:MAX_REPLY_CHARS]
