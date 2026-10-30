@@ -191,9 +191,11 @@ Hinweise zu Grenzen, Nachweisen und verbleibenden Betreiberentscheidungen:
 
 **A1–A8 sind in main, aber nicht als Gesamtsystem auf Betreiberhardware abgenommen.**
 
-Der laufende Universal-Observer-Ausbau B1–B6 erfolgt getrennt auf dem Entwicklungsbranch
-`pulse-b1-universal` in [PR #38](https://github.com/IMaugrenI/tof_container_pulse/pull/38).
-Derzeit werden belegte Compose-Korrelationen, konfigurierbare Anwendungsgesundheit,
-ausdrücklich deklarierte App-zu-Compose-Zuordnungen sowie statistische Ressourcenhinweise
-entwickelt. Diese Funktionen bleiben read-only, optional und unterliegen erst nach
-Abschluss des Ausbauplans der Gesamtabnahme.
+Die erste Universal-Observer-Entwicklungsintegration wurde über
+[PR #38](https://github.com/IMaugrenI/tof_container_pulse/pull/38)
+am 30.10.2026 nach `main` übernommen. Sie umfasst explizite Compose-Korrelationen,
+lokale Anwendungschecks, konfigurierte App-/Compose-Zuordnungen, historische Docker-/Incident-
+Zeitachsen, ressourcenbasierte Abweichungshinweise und manuelle Diagnosehinweise.
+Diese Funktionen sind read-only; Historienfunktionen bleiben opt-in.
+**Die Integration nach main ist kein GO und keine Runtime-/Gesamtabnahme.**
+Der Ausbau B1–B6 läuft gemäß [Ausbauplan](docs/18_universal_observer_build_plan.md) weiter.
