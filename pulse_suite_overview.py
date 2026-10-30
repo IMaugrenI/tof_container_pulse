@@ -91,6 +91,33 @@ def application_checks_summary(entries: list[dict] | None, collected: bool) -> s
 
 
 
+def operator_diagnostic_hint(app_status: str, docker_status: str) -> tuple[str, str]:
+    """Deterministic human guidance; never an autonomous action or diagnosis."""
+    if docker_status == "not_collected":
+        return ("Docker listing unavailable; host state is unknown. Check collection access manually.",
+                "Docker-Abfrage nicht verfügbar; Hostzustand unbekannt. Erfassungszugang manuell prüfen.")
+    if docker_status == "not_observed":
+        return ("No matching Compose service observed. Verify the declared project/service; outage not confirmed.",
+                "Kein passender Compose-Dienst beobachtet. Projekt/Dienstzuordnung prüfen; Ausfall nicht bestätigt.")
+    if docker_status == "mixed":
+        return ("Mixed container replica states; inspect instances separately.",
+                "Unterschiedliche Containerzustände; Instanzen einzeln prüfen.")
+    if app_status == "unknown":
+        return ("Application check unavailable or ambiguous; verify the declared check.",
+                "Anwendungscheck fehlt oder ist uneindeutig; Checkzuordnung prüfen.")
+    if app_status in ("critical", "warn") and docker_status in ("critical", "warn"):
+        return ("Both checks show issues. Review each independently; no common cause established.",
+                "Beide Prüfungen zeigen Probleme. Unabhängig prüfen; gemeinsame Ursache nicht belegt.")
+    if app_status in ("critical", "warn") and docker_status == "ok":
+        return ("Application check reports a problem despite Docker OK. Review endpoint and app behavior manually.",
+                "Anwendungscheck meldet Problem trotz Docker OK. Endpunkt und Anwendung manuell prüfen.")
+    if app_status == "ok" and docker_status in ("critical", "warn"):
+        return ("Probe succeeds despite container warning. Verify the declared association and all replicas.",
+                "Probe erfolgreich trotz Containerwarnung. Zuordnung und Replikate prüfen.")
+    return ("Observed checks show no conflict; one snapshot does not prove ongoing health.",
+            "Beobachtete Checks widersprechen sich nicht; Momentaufnahme beweist keine Dauerverfügbarkeit.")
+
+
 def declared_link_summary(links: object, docker: dict | None,
                           app_entries: list[dict] | None, app_collected: bool) -> str:
     """Operator-declared observation links only; no inferred relationship or causality."""
@@ -131,11 +158,13 @@ def declared_link_summary(links: object, docker: dict | None,
         else:
             statuses = {str(item.get("severity", "unknown")) for item in docker_matches}
             container_status = next(iter(statuses)) if len(statuses) == 1 else "mixed"
+        recommendation = l10n_text(*operator_diagnostic_hint(app_status, container_status))
         rows.append("<tr><td>" + html.escape(check) + "</td><td>" +
                     html.escape(host) + " / " + html.escape(project) + " / " +
                     html.escape(service) + "</td><td>" +
                     html.escape(app_status.upper()) + "</td><td>" +
-                    html.escape(container_status.upper()) + "</td></tr>")
+                    html.escape(container_status.upper()) + "</td><td>" +
+                    recommendation + "</td></tr>")
     if not rows:
         return ""
     return ('<section class="pulse-declared-links" aria-label="Declared application links" '
@@ -149,7 +178,9 @@ def declared_link_summary(links: object, docker: dict | None,
                 "NICHT BEOBACHTET ist kein Ausfall; NICHT ERFASST ist unbekannt.") +
             '</p><div class="table-shell"><table><thead><tr><th>' +
             l10n_text("Check", "Check") + '</th><th>Host / Compose</th><th>' +
-            l10n_text("Application", "Anwendung") + '</th><th>Docker</th></tr></thead><tbody>' +
+            l10n_text("Application", "Anwendung") + '</th><th>Docker</th><th>' +
+            l10n_text("Manual diagnostic hint", "Manueller Diagnosehinweis") +
+            '</th></tr></thead><tbody>' +
             "".join(rows) + '</tbody></table></div></section>')
 
 
