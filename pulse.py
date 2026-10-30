@@ -391,7 +391,10 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
     return rows_html, messages, counts, observed
 
 
-def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
+def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None,
+                   state_path=".pulse_state.json", observation_sink=None):
+    if observation_sink is not None:
+        observation_sink.clear()
     generated_at = _now()
     previous_last_success = _read_last_success(state_path)
     config = dict(DEFAULT_CONFIG)
@@ -478,6 +481,14 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )
         _write_last_success(state_path, generated_at)
+        if observation_sink is not None:
+            observation_sink["successful_hosts"] = successful_hosts[:80]
+            observation_sink["failed_hosts"] = failed_hosts[:80]
+            observation_sink["containers"] = [
+                {"host": item["host"], "project": item.get("compose_project", ""),
+                 "service": item.get("compose_service", ""), "severity": item["severity"]}
+                for item in observations[:1500]
+            ]
         return True
     except Exception as exc:
         _render_html(
