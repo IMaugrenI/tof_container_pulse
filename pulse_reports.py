@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from pulse_history import load_history, load_incidents
+from pulse_trends import resource_anomalies
 
 LEVELS = ("ok", "warn", "critical", "unknown")
 REASONS = {"unhealthy_container", "disappeared_from_listing"}
@@ -37,6 +38,7 @@ def build_report(history_path: str | Path) -> dict:
             )
     active = Counter(str(item.get("host", "")) for item in incidents
                      if item.get("resolved_at") is None)
+    deviation_counts = Counter((item["host"], item["metric"]) for item in resource_anomalies(snapshots))
     summary, cooccurrences = [], []
     for host, alias in aliases.items():
         captured, containers = latest.get(host, ("", []))
@@ -48,12 +50,20 @@ def build_report(history_path: str | Path) -> dict:
             "containers": len(containers), "open_incidents": active[host],
             "severity_counts": {level: count[level] for level in LEVELS},
             "high_cpu_containers": cpu, "high_memory_containers": memory,
+            "unusual_cpu_containers": deviation_counts[(host, "cpu_percent")],
+            "unusual_memory_containers": deviation_counts[(host, "memory_mb")],
         })
         if active[host] >= 2 and (cpu or memory):
             cooccurrences.append({
                 "host_alias": alias,
                 "signal": "multiple_incidents_and_resource_pressure",
                 "caution": "Shared host does not prove shared root cause",
+            })
+        if deviation_counts[(host, "cpu_percent")] or deviation_counts[(host, "memory_mb")]:
+            cooccurrences.append({
+                "host_alias": alias,
+                "signal": "historical_resource_deviation",
+                "caution": "Statistical change only; examine workload and measurements manually",
             })
     reports = [{
         "id": str(row.get("id", ""))[:50],
@@ -70,7 +80,7 @@ def build_report(history_path: str | Path) -> dict:
         "schema_version": 1, "generated_at_utc": datetime.now(UTC).isoformat(),
         "observations": len(snapshots), "hosts": summary,
         "correlations": cooccurrences, "incidents": reports,
-        "limitations": "Docker history only; missing metrics are not zeros; co-occurrence is not causality.",
+        "limitations": "Docker history only; missing metrics are not zeros; co-occurrence and statistical deviations do not prove causality.",
     }
 
 
