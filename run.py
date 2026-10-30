@@ -44,11 +44,13 @@ def generate_suite(args) -> None:
 
     statuses = {}
     service_observations = {}
+    docker_observations = {}
     statuses["containers"] = generate_pulse(
         output_path=args.output,
         template_path=args.template,
         config_path=args.config,
         state_path=args.state_file,
+        observation_sink=docker_observations,
     )
     statuses["hardware"] = generate_hardware_pulse(
         output_path=args.hardware_output,
@@ -119,7 +121,12 @@ def generate_suite(args) -> None:
     apply_generated_l10n(args.storage_output)
     apply_generated_l10n(args.services_output)
     apply_generated_l10n(args.security_output)
-    add_suite_summary(args.output, statuses, service_observations.get("entries"))
+    try:
+        declared_links = _load_config(args.config).get("application_links", [])
+    except (OSError, ValueError, TypeError, RuntimeError):
+        declared_links = []
+    add_suite_summary(args.output, statuses, service_observations.get("entries"),
+                      docker_observations, declared_links)
 
 
 def main() -> int:
