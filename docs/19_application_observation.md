@@ -19,3 +19,16 @@ Security rules:
   or second start path is created.
 
 Readiness: development-only, CI evidence; no operator/runtime acceptance.
+
+## B3 – Explicit infrastructure associations (development)
+
+The operator may optionally declare an `application_links` list in the existing YAML config. Each item contains:
+
+- `check`: unique configured `service_checks[].name`;
+- `host`: the displayed Docker host alias (or local hostname without a hosts list);
+- `project`: exact Compose project name;
+- `service`: exact Compose service name.
+
+The Suite joins only the **current in-process observations** from Docker and Services Pulse. No second probe, inspect call, local DB, new startup command, or persistence is introduced. The static link table displays both independent statuses; it cannot infer service-to-container identity, an actual dependency, an outage from a missing container, or causal direction. Failed hosts display `NOT_COLLECTED`; absent containers on successfully queried hosts display `NOT_OBSERVED`. A duplicate application check name yields `UNKNOWN` and duplicate Docker host aliases are rejected to prevent cross-context mixing. At most 50 declared links are accepted.
+
+The feature remains development-only until the final project-wide acceptance.
