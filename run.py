@@ -10,7 +10,7 @@ from light_mode_contrast import apply_light_panel_contrast
 from ports_xplat import generate_port_pulse
 from pulse import _load_config, generate_pulse
 from pulse_explain import explain_incidents_locally
-from pulse_history import acknowledge_incident
+from pulse_history import acknowledge_incident, load_application_history, record_application_snapshot
 from pulse_reports import export_report
 from pulse_suite_overview import add_suite_summary
 from security_xplat import generate_security_pulse
@@ -134,8 +134,29 @@ def generate_suite(args) -> None:
         declared_links = _load_config(args.config).get("application_links", [])
     except (OSError, ValueError, TypeError, RuntimeError):
         declared_links = []
+    # A separate opt-in reuses the EXISTING private Docker history file. No
+    # application sample is written after failed collection or absent checks.
+    application_history = None
+    if statuses.get("services") is True:
+        try:
+            config = _load_config(args.config)
+            if config.get("history_enabled") is True and config.get("application_history_enabled") is True:
+                history_path = config.get("history_path", ".pulse_history.json")
+                samples = service_observations.get("entries") or []
+                if samples:
+                    record_application_snapshot(
+                        history_path, samples, at=completed_at["services"],
+                        max_snapshots=config.get("application_history_max_snapshots", 60),
+                    )
+                application_history = load_application_history(history_path)
+        except (OSError, ValueError, TypeError, RuntimeError) as exc:
+            # Invalid configuration or unsafe storage must not affect other pages.
+            application_history = []
+            service_observations["history_issue"] = type(exc).__name__
     add_suite_summary(args.output, statuses, service_observations.get("entries"),
-                      docker_observations, declared_links, completed_at=completed_at)
+                      docker_observations, declared_links, completed_at=completed_at,
+                      application_history=application_history,
+                      application_history_issue=service_observations.get("history_issue"))
 
 
 def main() -> int:
