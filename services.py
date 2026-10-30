@@ -1,5 +1,6 @@
 import html
 import json
+import math
 import socket
 import time
 import urllib.error
@@ -153,10 +154,25 @@ def _bounded_timeout(check, config) -> float:
     return seconds
 
 
+def _latency_warning_limit(check) -> float | None:
+    """Optional warning threshold in milliseconds, never an uptime verdict."""
+    raw = check.get("latency_warn_ms")
+    if raw is None:
+        return None
+    try:
+        limit = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid latency_warn_ms") from exc
+    if not math.isfinite(limit) or not 1 <= limit <= 120000:
+        raise ValueError("latency_warn_ms must be 1-120000 milliseconds")
+    return limit
+
+
 def _check_url(check, config):
     name = str(check.get("name") or "HTTP check")
     url = str(check.get("url") or "")
     timeout = _bounded_timeout(check, config)
+    latency_warning = _latency_warning_limit(check)
     allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
     expected_status = int(check.get("expected_status", 200))
 
@@ -207,17 +223,21 @@ def _check_url(check, config):
         )
 
     if status == expected_status:
+        slow = latency_warning is not None and latency_ms >= latency_warning
         return ServiceEntry(
             name=name,
             check_type="url",
             target=display_target,
-            state="up",
-            severity="ok",
+            state="slow" if slow else "up",
+            severity="warn" if slow else "ok",
             latency_ms=latency_ms,
-            note=l10n_text(
+            note=(l10n_text(
+                f"HTTP answered as expected but response took {latency_ms:.0f} ms; configured warning at {latency_warning:g} ms.",
+                f"HTTP antwortet wie erwartet, benötigte aber {latency_ms:.0f} ms; Warnschwelle {latency_warning:g} ms."
+            ) if slow else l10n_text(
                 f"HTTP responded with expected status {status}.",
                 f"HTTP antwortete mit erwartetem Status {status}.",
-            ),
+            )),
         )
     return ServiceEntry(
         name=name,
@@ -238,6 +258,7 @@ def _check_tcp(check, config):
     host = str(check.get("host") or "localhost")
     port = check.get("port")
     timeout = _bounded_timeout(check, config)
+    latency_warning = _latency_warning_limit(check)
     try:
         port_int = int(port)
     except Exception:
@@ -261,17 +282,21 @@ def _check_tcp(check, config):
             ),
         )
 
+    slow = latency_warning is not None and latency_ms >= latency_warning
     return ServiceEntry(
         name=name,
         check_type="tcp",
         target=f"{host}:{port_int}",
-        state="open",
-        severity="ok",
+        state="slow" if slow else "open",
+        severity="warn" if slow else "ok",
         latency_ms=latency_ms,
-        note=l10n_text(
+        note=(l10n_text(
+            f"TCP accepted the connection but took {latency_ms:.0f} ms; warning at {latency_warning:g} ms.",
+            f"TCP-Verbindung angenommen, aber {latency_ms:.0f} ms; Warnschwelle {latency_warning:g} ms."
+        ) if slow else l10n_text(
             "TCP port accepted a connection.",
             "TCP-Port hat eine Verbindung angenommen.",
-        ),
+        )),
     )
 
 
@@ -424,6 +449,7 @@ def _state_label(state):
         "closed": ("closed", "geschlossen"),
         "fresh": ("fresh", "frisch"),
         "stale": ("stale", "alt"),
+        "slow": ("slow", "langsam"),
         "missing": ("missing", "fehlt"),
         "unknown": ("unknown", "unbekannt"),
     }
