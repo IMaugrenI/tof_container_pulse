@@ -90,8 +90,72 @@ def application_checks_summary(entries: list[dict] | None, collected: bool) -> s
             '</h2></section>' + body + '</section>')
 
 
+
+def declared_link_summary(links: object, docker: dict | None,
+                          app_entries: list[dict] | None, app_collected: bool) -> str:
+    """Operator-declared observation links only; no inferred relationship or causality."""
+    if not links:
+        return ""
+    if not isinstance(links, list) or len(links) > 50:
+        return ("<p>" + l10n_text(
+            "Application links ignored: expected at most 50 explicit declarations.",
+            "Anwendungsverknüpfungen ignoriert: maximal 50 ausdrückliche Zuordnungen erlaubt.") + "</p>")
+    docker = docker or {}
+    observed_hosts = set(docker.get("successful_hosts") or [])
+    docker_rows = docker.get("containers") or []
+    apps_by_name: dict[str, list[dict]] = {}
+    for entry in (app_entries or []):
+        apps_by_name.setdefault(str(entry.get("name", "")), []).append(entry)
+    rows = []
+    for link in links:
+        if not isinstance(link, dict):
+            continue
+        check = str(link.get("check", ""))[:120]
+        host = str(link.get("host", ""))[:120]
+        project = str(link.get("project", ""))[:120]
+        service = str(link.get("service", ""))[:120]
+        if not all((check, host, project, service)):
+            continue
+        app_matches = apps_by_name.get(check, []) if app_collected else []
+        app_status = str(app_matches[0].get("severity", "unknown")) if len(app_matches) == 1 else "unknown"
+        if app_status not in ("ok", "warn", "critical", "unknown"):
+            app_status = "unknown"
+        docker_matches = [
+            item for item in docker_rows
+            if item.get("host") == host and item.get("project") == project and item.get("service") == service
+        ] if host in observed_hosts else []
+        if host not in observed_hosts:
+            container_status = "not_collected"
+        elif not docker_matches:
+            container_status = "not_observed"
+        else:
+            statuses = {str(item.get("severity", "unknown")) for item in docker_matches}
+            container_status = next(iter(statuses)) if len(statuses) == 1 else "mixed"
+        rows.append("<tr><td>" + html.escape(check) + "</td><td>" +
+                    html.escape(host) + " / " + html.escape(project) + " / " +
+                    html.escape(service) + "</td><td>" +
+                    html.escape(app_status.upper()) + "</td><td>" +
+                    html.escape(container_status.upper()) + "</td></tr>")
+    if not rows:
+        return ""
+    return ('<section class="pulse-declared-links" aria-label="Declared application links" '
+            'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
+            'border-radius:var(--radius-lg)"><section class="table-title"><h2>' +
+            l10n_text("Declared infrastructure links", "Deklarierte Infrastrukturverknüpfungen") +
+            '</h2></section><p>' + l10n_text(
+                "Only links explicitly declared by the operator. States are independent observations, not dependency or causal proof. "
+                "NOT OBSERVED is not DOWN; NOT COLLECTED is unknown.",
+                "Nur ausdrücklich vom Betreiber deklarierte Zuordnungen. Zustände sind unabhängige Beobachtungen, kein Abhängigkeits- oder Ursachenbeweis. "
+                "NICHT BEOBACHTET ist kein Ausfall; NICHT ERFASST ist unbekannt.") +
+            '</p><div class="table-shell"><table><thead><tr><th>' +
+            l10n_text("Check", "Check") + '</th><th>Host / Compose</th><th>' +
+            l10n_text("Application", "Anwendung") + '</th><th>Docker</th></tr></thead><tbody>' +
+            "".join(rows) + '</tbody></table></div></section>')
+
+
 def add_suite_summary(output_path: str | Path, results: dict[str, object],
-                      service_entries: list[dict] | None = None) -> bool:
+                      service_entries: list[dict] | None = None, docker_evidence: dict | None = None,
+                      application_links: object = None) -> bool:
     """Modify only the existing generated Container Pulse output; idempotent."""
     path = Path(output_path)
     if not path.is_file():
@@ -104,6 +168,8 @@ def add_suite_summary(output_path: str | Path, results: dict[str, object],
         marker,
         collection_summary(results) +
         application_checks_summary(service_entries, results.get("services") is True) +
+        declared_link_summary(application_links, docker_evidence, service_entries,
+                              results.get("services") is True) +
         "\n" + marker, 1)
     path.write_text(source, encoding="utf-8")
     return True
