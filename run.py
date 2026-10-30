@@ -168,7 +168,8 @@ def main() -> int:
 
     if args.explain_incidents:
         config = _load_config(args.config)
-        if not config.get("history_enabled") or not config.get("local_explanation_enabled"):
+        # Only explicit YAML boolean true is valid consent; quoted strings are not opt-in.
+        if config.get("history_enabled") is not True or config.get("local_explanation_enabled") is not True:
             parser.error("--explain-incidents requires history_enabled and local_explanation_enabled in --config")
         if not args.explain_model:
             parser.error("--explain-incidents requires --explain-model")
