@@ -80,7 +80,7 @@ Voraussetzungen: `history_enabled: true`, `local_explanation_enabled: true`, ein
 
 Der Adapter erhält **nur** aus `pulse_reports.build_report` nochmals explizit whitelisted, anonymisierte Host-Aliase und aggregierte Incident-/Ressourcenzahlen. Keine Rohlogs, Config-Werte, Container-/Image-Namen, Benutzerinformationen, Netzwerktopologie oder Kommandos. Er verwendet eine feste Loopback-Adresse, deaktiviert Proxy und HTTP-Redirects, begrenzt Anfrage/Antwort, Laufzeit und Ausgabetokens und fordert eine vorsichtige, als unbestätigt gekennzeichnete Erklärung. Weder Werkzeuge noch Reparaturen oder persistierte LLM-Antworten werden angeboten. Keine Modellinstallation und keine Cloud- oder Fallback-Provider.
 
-**Status:** Code im Entwicklungsbranch; Funktionstests/CI sind keine Betreiberabnahme. Ein lokales Modell benötigt eigene ausreichende Ressourcen und Betreiberentscheidung.
+**Status:** Adapter über PR #40 nach `main` integriert und CI-/Smoke-geprüft; weiterhin kein Runtime-Nachweis. Ein lokales Modell benötigt eigene ausreichende Ressourcen und Betreiberentscheidung.
 
 ## B1/B2/B6 – Entwicklungsintegration 2: Erfassungsqualität & Latenzwarnung
 
@@ -88,3 +88,12 @@ Der Adapter erhält **nur** aus `pulse_reports.build_report` nochmals explizit w
 - **B2:** Optionale, individuell pro HTTP- oder TCP-Check konfigurierte `latency_warn_ms` (1–120000 ms). Erreichbarkeit und Latenz werden getrennt: erfolgreiche langsame Antworten werden `slow/warn`, nicht `down/critical`; fehlende Schwelle erhält den alten Zustand. Ungültige Warnschwellen werden abgewiesen, die vorhandene Timeout- und URL-Sicherheitsgrenze bleibt bestehen.
 - Beide Änderungen nutzen `run.py`, `services.py`, `pulse_suite_overview.py` und die bestehenden statischen HTML-Seiten; keine neuen Collector, Prozesse, Datenbanken oder automatischen Eingriffe.
 - **Nachweisgrenze:** CI/Smokes belegen Entwicklungsqualität, keine Betriebsgarantie. Feature-Freeze und Gesamtabnahme weiterhin erst nach dem ganzen Funktionsumfang B1–B6.
+
+## B1–B3 – Datenintegration und Anwendungshistorie (Entwicklung)
+
+- B1: Der vorhandene Docker-Collector teilt jetzt zusätzlich eine **begrenzte, rein in-memory** Gruppenansicht mit der Suite. Nur tatsächlich vom bestehenden Docker-PS gelesene Compose-Labels bestimmen Dienste und `depends_on`-Kanten. Kein neuer Netzwerkabruf oder `inspect`. Nicht beobachtete Abhängigkeitsziele bleiben ausdrücklich nicht beobachtet; fehlgeschlagene Hosts bleiben unbekannt.
+- B2: Mit den getrennten Flags `history_enabled: true` **und** `application_history_enabled: true` lassen sich HTTP-, TCP- und Heartbeat-Prüfergebnisse als begrenzte `application_snapshots` im **bereits vorhandenen** privaten History-JSON speichern (`version: 1`, maximal 60 App-Snapshots/100 Checks, übergreifend 2 MB). Keine neuen Dateien, keine zusätzlichen Collector, keine Writes bei fehlgeschlagener Service-Erfassung oder leerer Konfiguration. Check-Name, Typ, Status, Severity, erlaubte Latenz und UTC-Erfassungsabschluss sind die einzigen Felder; URL, Zielhost, Authentisierung, Pfade, Container-IDs, Docker-Labels und Logs werden nicht übernommen. Die unveränderte Docker-/Incident-Historie wird bei App-Speicherdruck nicht verdrängt.
+- B3: Bestehende Hauptseite kombiniert aktuelle Compose-Host-/Projekt-/Dienstdaten, explizite Abhängigkeitskanten und **ausschließlich operator-deklarierte** Anwendungszuordnungen. Die lokale App-Historie wird **separat als `suite_local`** dargestellt, nie als gemessener Zustand eines Remote-Docker-Hosts. Eine fehlende Probe oder ein fehlgeschlagener Host ist weder gesund noch nachgewiesen ausgefallen.
+- Architekturgrenze: Sechs HTML-Seiten und `run.py --once/--watch` bleiben unverändert kanonisch, keine zweite Datenbank/Runtime; Diagramm und Historie sind rein read-only. Keine neue Betreiberfreigabe durch CI oder Merge.
+
+Nach positiver GitHub-CI erfolgt die Entwicklungsintegration nach `main`. P2-Bewertung, Feature-Freeze und vollständige Abnahme bleiben getrennt.
