@@ -167,13 +167,14 @@ def render_diagnostics(observations: list[dict], failed_hosts: list[str] | None 
         rows.append("<li><strong>" + html.escape(str(item.get("host", ""))) + " / " +
                     html.escape(str(item.get("name", ""))) + "</strong> (" +
                     html.escape(severity) + "): " + advice + "</li>")
-    for link in coobserved_dependencies(observations):
+    for link in coobserved_dependencies(observations)[:max(0, 40 - len(rows))]:
+        evidence = ", ".join(link["source_severities"]) + " / " + ", ".join(link["target_severities"])
         rows.append("<li>" + html.escape(link["host"]) + " / " +
                     html.escape(link["project"]) + ": " +
                     html.escape(link["source"]) + " → " +
-                    html.escape(link["target"]) + " — " +
-                    l10n_text("Simultaneous warnings (not causal proof).",
-                              "Gleichzeitige Warnungen (kein Ursachenbeweis).") + "</li>")
+                    html.escape(link["target"]) + " (" + html.escape(evidence) + ") — " +
+                    l10n_text("Explicit Compose link, co-observed warnings; no cause established.",
+                              "Explizite Compose-Abhängigkeit, gemeinsame Warnungen; Ursache nicht belegt.") + "</li>")
     if not rows:
         rows.append("<li>" + l10n_text("No items need manual review in this observation.",
                                        "In dieser Beobachtung ist keine manuelle Prüfung angezeigt.") + "</li>")
@@ -199,6 +200,9 @@ def coobserved_dependencies(observations: list[dict]) -> list[dict]:
                 findings.append({"host": group["host"], "project": group["project"],
                                  "source": edge["from"], "target": edge["to"],
                                  "evidence": "explicit_compose_depends_on",
+                                 "source_severities": sorted({row["severity"] for row in source}),
+                                 "target_severities": sorted({row["severity"] for row in target}),
+                                 "source_count": len(source), "target_count": len(target),
                                  "assessment": "co_observed_warning_not_cause"})
             if len(findings) >= 20:
                 return findings
