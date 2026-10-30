@@ -13,22 +13,63 @@ from i18n_static import l10n_text
 PAGES = ("containers", "hardware", "ports", "storage", "services", "security")
 
 
-def collection_summary(results: dict[str, object]) -> str:
+def collection_quality(name: str, result: object, docker: dict | None = None,
+                       services: list[dict] | None = None) -> tuple[str, str, str]:
+    """Collection evidence, never system health or a causal assertion."""
+    if result is False:
+        return "unavailable", "collection failed", "Erfassung fehlgeschlagen"
+    if result is not True:
+        return "unconfirmed", "not confirmed", "nicht bestätigt"
+    if name == "containers" and docker is not None and "successful_hosts" in docker:
+        good = len(docker.get("successful_hosts") or [])
+        failed = len(docker.get("failed_hosts") or [])
+        if not good:
+            return "unavailable", "no Docker hosts collected", "keine Docker-Hosts erfasst"
+        if failed:
+            return "partial", "partial Docker collection", "Docker-Erfassung teilweise"
+    if name == "services" and services is not None:
+        if not services:
+            return "not_configured", "no checks configured", "keine Prüfungen konfiguriert"
+        if any(item.get("severity") == "unknown" for item in services):
+            return "partial", "checks include unknown results", "Prüfungen mit unbekannten Ergebnissen"
+    return "collected", "refreshed", "aktualisiert"
+
+
+def collection_summary(results: dict[str, object], docker_evidence: dict | None = None,
+                       service_entries: list[dict] | None = None,
+                       completed_at: dict[str, str] | None = None) -> str:
+    """Display per-collector provenance without inventing platform or host health."""
     rows = []
     successful = 0
     unknown = 0
     for name in PAGES:
         result = results.get(name)
-        if result is True:
+        quality, en, de = collection_quality(name, result, docker_evidence, service_entries)
+        if quality in ("collected", "partial"):
             successful += 1
-            en, de = "refreshed", "aktualisiert"
-        elif result is False:
-            en, de = "collection failed", "Erfassung fehlgeschlagen"
-        else:
+        elif quality == "unconfirmed":
             unknown += 1
-            en, de = "not confirmed", "nicht bestätigt"
+        scope_en, scope_de = (
+            ("configured Docker hosts", "konfigurierte Docker-Hosts") if name == "containers"
+            else ("configured checks from this computer", "konfigurierte Prüfungen dieses Rechners") if name == "services"
+            else ("this computer", "dieser Rechner")
+        )
+        evidence = ""
+        if name == "containers" and docker_evidence is not None and "successful_hosts" in docker_evidence:
+            good = len(docker_evidence.get("successful_hosts") or [])
+            failed = len(docker_evidence.get("failed_hosts") or [])
+            evidence = l10n_text(f"{good} hosts collected, {failed} unavailable",
+                                 f"{good} Hosts erfasst, {failed} nicht verfügbar")
+        elif name == "services" and service_entries is not None:
+            unknown_checks = sum(1 for item in service_entries if item.get("severity") == "unknown")
+            evidence = l10n_text(f"{len(service_entries)} configured results; {unknown_checks} unknown",
+                                 f"{len(service_entries)} Prüfergebnisse; {unknown_checks} unbekannt")
+        stamp = str((completed_at or {}).get(name, ""))[:48]
         rows.append("<tr><td>" + html.escape(name.title()) + "</td><td>" +
-                    l10n_text(en, de) + "</td></tr>")
+                    l10n_text(en, de) + "</td><td>" +
+                    l10n_text(scope_en, scope_de) + "</td><td>" +
+                    html.escape(evidence or "-") + "</td><td>" +
+                    html.escape(stamp or "-") + "</td></tr>")
     lead = l10n_text(
         f"{successful} of 6 collectors completed; {unknown} unconfirmed.",
         f"{successful} von 6 Datenerfassungen abgeschlossen; {unknown} nicht bestätigt."
@@ -42,13 +83,18 @@ def collection_summary(results: dict[str, object]) -> str:
         '</h2><span>' + lead + '</span></section>'
         '<p>' + l10n_text(
             "Collection status is not system health. An unavailable page does not prove an outage, "
-            "and different warnings do not establish a common cause.",
+            "and different warnings do not establish a common cause. Timestamps are collection completion times in UTC, "
+            "not individual metric sampling times.",
             "Der Erfassungsstatus ist kein Systemgesundheitsurteil. Eine nicht verfügbare Seite "
-            "beweist keinen Ausfall und gleichzeitige Warnungen keine gemeinsame Ursache."
-        ) + '</p><div class="table-shell"><table><thead><tr><th>Area</th><th>Status</th>'
-        '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div></section>'
+            "beweist keinen Ausfall und gleichzeitige Warnungen keine gemeinsame Ursache. Zeitstempel zeigen den "
+            "Abschluss der Erfassung in UTC, nicht die Messzeit einzelner Werte."
+        ) + '</p><div class="table-shell"><table><thead><tr><th>' +
+        l10n_text("Area", "Bereich") + '</th><th>' + l10n_text("Quality", "Erfassungsqualität") +
+        '</th><th>' + l10n_text("Scope", "Geltungsbereich") + '</th><th>' +
+        l10n_text("Evidence", "Nachweis") + '</th><th>' +
+        l10n_text("Completed UTC", "Abgeschlossen UTC") +
+        '</th></tr></thead><tbody>' + "".join(rows) + '</tbody></table></div></section>'
     )
-
 
 
 def application_checks_summary(entries: list[dict] | None, collected: bool) -> str:
@@ -186,7 +232,7 @@ def declared_link_summary(links: object, docker: dict | None,
 
 def add_suite_summary(output_path: str | Path, results: dict[str, object],
                       service_entries: list[dict] | None = None, docker_evidence: dict | None = None,
-                      application_links: object = None) -> bool:
+                      application_links: object = None, completed_at: dict[str, str] | None = None) -> bool:
     """Modify only the existing generated Container Pulse output; idempotent."""
     path = Path(output_path)
     if not path.is_file():
@@ -197,7 +243,7 @@ def add_suite_summary(output_path: str | Path, results: dict[str, object],
         return False
     source = source.replace(
         marker,
-        collection_summary(results) +
+        collection_summary(results, docker_evidence, service_entries, completed_at) +
         application_checks_summary(service_entries, results.get("services") is True) +
         declared_link_summary(application_links, docker_evidence, service_entries,
                               results.get("services") is True) +
