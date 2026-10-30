@@ -251,3 +251,94 @@ def render_incident_center(incidents: list[dict], at: str | None = None) -> str:
             f"{open_count} offen · {resolved_count} behoben · Bestätigung nur über lokale CLI"
         ) + '</span></div>' + body + "</section>"
     )
+
+
+# Universal Observer B3: bounded timeline built only from retained historical evidence.
+_TIMELINE_KINDS = {"appeared", "changed", "disappeared"}
+
+
+def infrastructure_timeline_items(snapshots: list[dict], incidents: list[dict],
+                                  limit: int = 30) -> list[dict]:
+    """Combine existing Docker change evidence and incident observations.
+
+    Times are observation timestamps, never inferred start or outage times.
+    No current service-check values are inserted into historical records.
+    """
+    items = []
+    for snapshot in snapshots[-48:]:
+        observed_hosts = set(str(host) for host in snapshot.get("hosts", [])[:80])
+        for event in snapshot.get("events", [])[:200]:
+            host = str(event.get("host", ""))[:120]
+            kind = str(event.get("kind", ""))
+            if not host or host not in observed_hosts or kind not in _TIMELINE_KINDS:
+                continue
+            items.append({
+                "at": str(event.get("at") or snapshot.get("at") or "")[:50],
+                "host": host, "subject": str(event.get("container", ""))[:120],
+                "kind": "docker_" + kind, "evidence": "successful_docker_listing",
+                "detail": str(event.get("detail", ""))[:300],
+            })
+
+    for incident in incidents[-350:]:
+        host = str(incident.get("host", ""))[:120]
+        ident = str(incident.get("id", ""))
+        if not host or not ident.startswith("INC-"):
+            continue
+        beginning = str(incident.get("started_at") or "")[:50]
+        if beginning:
+            estimate = str(incident.get("onset_estimate", "first_observed"))
+            if estimate not in ("first_observed", "since_previous_snapshot"):
+                estimate = "unknown"
+            items.append({
+                "at": beginning, "host": host,
+                "subject": str(incident.get("name", ""))[:120],
+                "kind": "incident_first_observed",
+                "evidence": "incident_record_" + estimate,
+                "detail": ident[:50],
+            })
+        end = str(incident.get("resolved_at") or "")[:50]
+        if end:
+            items.append({
+                "at": end, "host": host,
+                "subject": str(incident.get("name", ""))[:120],
+                "kind": "incident_recovery_observed", "evidence": "successful_docker_observation",
+                "detail": ident[:50],
+            })
+
+    # Unsupported or malformed timestamps cannot establish an ordering.
+    def parsed(item):
+        try:
+            dt = datetime.fromisoformat(item["at"])
+            return dt.timestamp() if dt.tzinfo is not None else None
+        except (ValueError, TypeError, OverflowError):
+            return None
+
+    ordered = [(parsed(item), item) for item in items]
+    ordered = [(at, item) for at, item in ordered if at is not None]
+    ordered.sort(key=lambda x: (x[0], x[1]["host"], x[1]["kind"]), reverse=True)
+    return [item for _, item in ordered[:max(0, min(limit, 30))]]
+
+
+def render_infrastructure_timeline(snapshots: list[dict], incidents: list[dict]) -> str:
+    items = infrastructure_timeline_items(snapshots, incidents)
+    if not items:
+        return ""
+    esc = lambda value: html.escape(str(value), quote=True)
+    rows = [
+        "<tr><td>" + esc(item["at"]) + "</td><td>" + esc(item["host"]) +
+        "</td><td>" + esc(item["subject"]) + "</td><td>" +
+        esc(item["kind"]) + "</td><td>" + esc(item["evidence"]) +
+        "</td><td>" + esc(item["detail"]) + "</td></tr>"
+        for item in items
+    ]
+    return (
+        '<section class="pulse-infrastructure-timeline" aria-label="Infrastructure observation timeline">'
+        '<div class="table-title"><h2>' +
+        l10n_text("Infrastructure timeline", "Infrastruktur-Zeitachse") +
+        '</h2><span>' +
+        l10n_text("Observed evidence only; timestamps are not proven outage or recovery times.",
+                  "Nur beobachtete Belege; Zeitstempel sind keine bewiesenen Ausfall- oder Wiederherstellungszeiten.") +
+        '</span></div><div class="table-shell"><table><thead><tr><th>UTC</th><th>Host</th>'
+        '<th>Object</th><th>Event</th><th>Evidence</th><th>Detail</th></tr></thead><tbody>' +
+        "".join(rows) + '</tbody></table></div></section>'
+    )
