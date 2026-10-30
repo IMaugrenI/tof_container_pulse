@@ -43,6 +43,7 @@ def generate_suite(args) -> None:
     """
 
     statuses = {}
+    service_observations = {}
     statuses["containers"] = generate_pulse(
         output_path=args.output,
         template_path=args.template,
@@ -72,6 +73,7 @@ def generate_suite(args) -> None:
         template_path=args.services_template,
         config_path=args.config,
         state_path=args.services_state_file,
+        observation_sink=service_observations,
     )
     statuses["security"] = generate_security_pulse(
         output_path=args.security_output,
@@ -117,7 +119,7 @@ def generate_suite(args) -> None:
     apply_generated_l10n(args.storage_output)
     apply_generated_l10n(args.services_output)
     apply_generated_l10n(args.security_output)
-    add_suite_summary(args.output, statuses)
+    add_suite_summary(args.output, statuses, service_observations.get("entries"))
 
 
 def main() -> int:
