@@ -12,7 +12,8 @@ def test_collector_quality_never_conflates_partial_unknown_or_unavailable():
     assert collection_quality("containers", True, {"successful_hosts": ["local"], "failed_hosts": ["remote"]})[0] == "partial"
     assert collection_quality("containers", True, {"successful_hosts": ["local"], "failed_hosts": []})[0] == "collected"
     assert collection_quality("services", True, services=[])[0] == "not_configured"
-    assert collection_quality("services", True, services=[{"severity": "unknown"}])[0] == "partial"
+    assert collection_quality("services", True, services=[{"severity": "unknown"}])[0] == "unavailable"
+    assert collection_quality("services", True, services=[{"severity": "unknown"}, {"severity": "ok"}])[0] == "partial"
     assert collection_quality("services", False, services=[{"severity": "ok"}])[0] == "unavailable"
     assert collection_quality("hardware", None)[0] == "unconfirmed"
 
@@ -22,7 +23,7 @@ def test_utc_completion_is_escaped_and_not_mislabeled_sampling_time():
         {"containers": True, "hardware": True, "ports": False,
          "storage": True, "services": True, "security": True},
         docker_evidence={"successful_hosts": ["local"], "failed_hosts": ["remote"]},
-        service_entries=[{"severity": "unknown"}],
+        service_entries=[{"severity": "unknown"}, {"severity": "ok"}],
         completed_at={"containers": "2026-10-30T17:00:00+00:00",
                       "services": "<img onerror=1>"},
     )
