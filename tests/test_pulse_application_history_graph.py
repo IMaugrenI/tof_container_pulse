@@ -160,16 +160,17 @@ def test_suite_injection_contains_history_and_graph_without_second_page(tmp_path
                              application_history=hist) is False
 
 
-def test_run_requires_double_optin_and_successful_services_collection():
+def test_run_requires_double_optin_and_successful_services_collection(tmp_path):
     import run
     from unittest.mock import patch
-    # No actual collector, network call, or generated file.
-    args = SimpleNamespace(config=None, output="nothing.html", template="", state_file="",
-                           hardware_output="", hardware_template="", hardware_state_file="",
-                           ports_output="", ports_template="", ports_state_file="",
-                           storage_output="", storage_template="", storage_state_file="",
-                           services_output="", services_template="", services_state_file="",
-                           security_output="", security_template="", security_state_file="")
+    # Generated outputs do not exist, so presentation helpers are harmless.
+    args = SimpleNamespace(config=None, output=str(tmp_path / "pulse.html"),
+                           template="", state_file="",
+                           hardware_output=str(tmp_path / "hardware.html"), hardware_template="", hardware_state_file="",
+                           ports_output=str(tmp_path / "ports.html"), ports_template="", ports_state_file="",
+                           storage_output=str(tmp_path / "storage.html"), storage_template="", storage_state_file="",
+                           services_output=str(tmp_path / "services.html"), services_template="", services_state_file="",
+                           security_output=str(tmp_path / "security.html"), security_template="", security_state_file="")
     def verify(config, service_result, should_store):
         with patch("run._load_config", return_value=config), \
              patch("run.generate_pulse", return_value=True), \
