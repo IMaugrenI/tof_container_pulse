@@ -119,6 +119,28 @@ def _entry_unknown(name, check_type, target, message_en, message_de):
     )
 
 
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Never silently follow a check URL to another host or network."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _safe_url_target(url: str) -> str:
+    """Display scheme and host only; never display URL credentials, query or path."""
+    try:
+        parsed = urlparse(url)
+        if not parsed.hostname:
+            return "-"
+        port = f":{parsed.port}" if parsed.port is not None else ""
+        host = parsed.hostname
+        if ":" in host:  # IPv6 URL
+            host = f"[{host}]"
+        return f"{parsed.scheme}://{host}{port}"
+    except (ValueError, TypeError):
+        return "-"
+
+
 def _check_url(check, config):
     name = str(check.get("name") or check.get("url") or "HTTP check")
     url = str(check.get("url") or "")
@@ -126,13 +148,24 @@ def _check_url(check, config):
     allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
     expected_status = int(check.get("expected_status", 200))
 
+    display_target = _safe_url_target(url)
+    try:
+        parsed = urlparse(url)
+        valid_http = parsed.scheme.lower() in ("http", "https") and bool(parsed.hostname)
+        has_credentials = bool(parsed.username or parsed.password)
+    except ValueError:
+        valid_http, has_credentials = False, False
     if not url:
         return _entry_unknown(name, "url", "-", "No URL configured.", "Keine URL konfiguriert.")
+    if not valid_http or has_credentials:
+        return _entry_unknown(name, "url", display_target,
+                              "HTTP(S) URL without embedded credentials required.",
+                              "HTTP(S)-URL ohne eingebettete Zugangsdaten erforderlich.")
     if not allow_external and not _is_local_url(url):
         return _entry_unknown(
             name,
             "url",
-            url,
+            display_target,
             "External URL checks are disabled by default. Set allow_external true for this check if intended.",
             "Externe URL-Checks sind standardmäßig deaktiviert. Setze allow_external true für diesen Check, wenn das beabsichtigt ist.",
         )
@@ -140,7 +173,8 @@ def _check_url(check, config):
     request = urllib.request.Request(url, method="GET", headers={"User-Agent": "ServicesPulse/1.0"})
     start = time.monotonic()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        # Redirects require a separately configured check; never follow implicitly.
+        with urllib.request.build_opener(_NoRedirectHandler()).open(request, timeout=timeout) as response:
             latency_ms = (time.monotonic() - start) * 1000.0
             status = int(response.getcode())
     except urllib.error.HTTPError as exc:
@@ -150,13 +184,13 @@ def _check_url(check, config):
         return ServiceEntry(
             name=name,
             check_type="url",
-            target=url,
+            target=display_target,
             state="down",
             severity="critical",
             latency_ms=None,
             note=l10n_text(
-                f"URL did not respond successfully: {exc}",
-                f"URL hat nicht erfolgreich geantwortet: {exc}",
+                f"URL check failed ({type(exc).__name__}); see configured endpoint.",
+                f"URL-Check fehlgeschlagen ({type(exc).__name__}); konfigurierten Endpunkt prüfen.",
             ),
         )
 
