@@ -79,6 +79,13 @@ def test_service_checks_bounded_before_collecting():
         _collect_services({"service_checks": [{"type": "tcp"}] * 101})
 
 
+def test_service_probe_timeout_must_be_bounded():
+    for value in (-1, 0, 31, "invalid", float("inf")):
+        with pytest.raises(ValueError, match="timeout"):
+            _check_url({"url": "http://localhost:8000/health", "timeout_seconds": value},
+                       DEFAULT_SERVICES_CONFIG)
+
+
 def test_existing_service_generator_can_supply_inprocess_evidence():
     entry = ServiceEntry(name="model", check_type="url", target="http://localhost:11434",
                          state="up", severity="ok", latency_ms=9.1, note="ok")
