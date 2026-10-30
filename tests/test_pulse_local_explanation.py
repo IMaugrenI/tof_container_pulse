@@ -117,3 +117,53 @@ def test_automatic_suite_does_not_expose_llm_network_paths():
     import inspect
     assert "pulse_explain" not in inspect.getsource(run.generate_suite)
     assert "explain_incidents_locally" not in inspect.getsource(run.generate_suite)
+
+
+def test_quoted_consent_values_never_enable_model_request(monkeypatch):
+    for value in ("true", "yes", 1, "false"):
+        monkeypatch.setattr(sys, "argv", ["run.py", "--explain-incidents",
+                                          "--explain-model", "local"])
+        with patch("run._load_config", return_value={"history_enabled": True,
+                                                       "local_explanation_enabled": value}), \
+             patch("run.explain_incidents_locally") as explain:
+            with pytest.raises(SystemExit):
+                run.main()
+            explain.assert_not_called()
+
+
+def test_real_boolean_optin_uses_existing_cli_and_no_suite_refresh(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["run.py", "--explain-incidents",
+                                      "--explain-model", "local"])
+    with patch("run._load_config", return_value={"history_enabled": True,
+                                                   "local_explanation_enabled": True,
+                                                   "history_path": ".test-history.json"}), \
+         patch("run.explain_incidents_locally", return_value="manual guidance") as explain, \
+         patch("run.generate_suite") as generate:
+        assert run.main() == 0
+    explain.assert_called_once_with(".test-history.json", "local")
+    generate.assert_not_called()
+    assert "manual guidance" in capsys.readouterr().out
+
+
+def test_model_c1_terminal_escapes_are_removed(tmp_path):
+    history = stored_incident(tmp_path)
+
+    class Response:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def getcode(self):
+            return 200
+        def read(self, size):
+            return json.dumps({"response": "Safe\u009b31m text\u001b[2J"}).encode()
+
+    class Opener:
+        def open(self, request, timeout):
+            return Response()
+
+    with patch("pulse_explain.urllib.request.build_opener", return_value=Opener()):
+        answer = explain_incidents_locally(str(history), "local")
+    assert "\u009b" not in answer
+    assert "\u001b" not in answer
+    assert "Safe" in answer
