@@ -141,10 +141,22 @@ def _safe_url_target(url: str) -> str:
         return "-"
 
 
+def _bounded_timeout(check, config) -> float:
+    """Fail closed on malformed or unbounded per-check timeouts."""
+    raw = check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0))
+    try:
+        seconds = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid service timeout") from exc
+    if not 0.1 <= seconds <= 30.0:
+        raise ValueError("Service timeout must be between 0.1 and 30 seconds")
+    return seconds
+
+
 def _check_url(check, config):
     name = str(check.get("name") or "HTTP check")
     url = str(check.get("url") or "")
-    timeout = float(check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0)))
+    timeout = _bounded_timeout(check, config)
     allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
     expected_status = int(check.get("expected_status", 200))
 
@@ -225,7 +237,7 @@ def _check_tcp(check, config):
     name = str(check.get("name") or "TCP check")
     host = str(check.get("host") or "localhost")
     port = check.get("port")
-    timeout = float(check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0)))
+    timeout = _bounded_timeout(check, config)
     try:
         port_int = int(port)
     except Exception:
