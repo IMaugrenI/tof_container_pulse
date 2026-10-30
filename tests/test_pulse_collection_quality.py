@@ -101,3 +101,11 @@ def test_slow_tcp_connection_is_warning_not_outage():
     assert result.state == "slow"
     assert result.severity == "warn"
     assert result.latency_ms == pytest.approx(500)
+
+
+def test_invalid_tcp_configuration_does_not_look_like_a_service_outage():
+    for port in (0, 65536, -1, True, "not-a-port"):
+        with patch("services.socket.create_connection") as connect:
+            result = _check_tcp({"host": "localhost", "port": port}, DEFAULT_SERVICES_CONFIG)
+        assert result.severity == "unknown"
+        connect.assert_not_called()
