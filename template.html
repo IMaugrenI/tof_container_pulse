@@ -686,6 +686,17 @@
         <span data-i18n="loadBars">Load and memory are shown so unusual activity is easier to spot.</span>
       </section>
 
+      <section class="pulse-container-filter" aria-label="Container table filters" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0 18px">
+        <label for="pulse-filter-host"><span data-l10n-en="Host" data-l10n-de="Host">Host</span></label>
+        <select id="pulse-filter-host" aria-label="Filter containers by host"><option value="" data-l10n-en="All hosts" data-l10n-de="Alle Hosts">All hosts</option></select>
+        <label for="pulse-filter-severity"><span data-l10n-en="Attention" data-l10n-de="Aufmerksamkeit">Attention</span></label>
+        <select id="pulse-filter-severity" aria-label="Filter containers by attention">
+          <option value="" data-l10n-en="All states" data-l10n-de="Alle Zustände">All states</option>
+          <option value="critical">CRITICAL</option><option value="warn">WARN</option>
+          <option value="unknown">UNKNOWN</option><option value="ok">OK</option>
+        </select>
+        <span id="pulse-filter-count" aria-live="polite"></span>
+      </section>
       <section class="table-shell" aria-label="Container details">
         <table>
           <thead>
@@ -703,7 +714,7 @@
               <th data-i18n="notes">Notes</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="pulse-container-rows">
             {{ROWS}}
           </tbody>
         </table>
@@ -839,6 +850,38 @@
 
     applyTheme();
     applyLanguage();
+
+    // Browser-only view filters. No fetch, network, write, or runtime action.
+    (function initContainerFilters() {
+      const body = document.getElementById('pulse-container-rows');
+      const hostInput = document.getElementById('pulse-filter-host');
+      const severityInput = document.getElementById('pulse-filter-severity');
+      const counter = document.getElementById('pulse-filter-count');
+      if (!body || !hostInput || !severityInput || !counter) return;
+      const rows = Array.from(body.querySelectorAll('tr')).filter(row => row.cells.length >= 3);
+      const hosts = Array.from(new Set(rows.map(row => row.cells[0].textContent.trim()))).sort();
+      hosts.forEach(host => {
+        const option = document.createElement('option');
+        option.value = host;
+        option.textContent = host;
+        hostInput.appendChild(option);
+      });
+      function update() {
+        let visible = 0;
+        rows.forEach(row => {
+          const host = row.cells[0].textContent.trim();
+          const severity = row.cells[2].textContent.trim().toLowerCase();
+          const selected = (!hostInput.value || host === hostInput.value) &&
+                           (!severityInput.value || severity === severityInput.value);
+          row.style.display = selected ? '' : 'none';
+          if (selected) visible += 1;
+        });
+        counter.textContent = visible + ' / ' + rows.length;
+      }
+      hostInput.addEventListener('change', update);
+      severityInput.addEventListener('change', update);
+      update();
+    }());
   </script>
 </body>
 </html>
