@@ -167,6 +167,13 @@ def render_diagnostics(observations: list[dict], failed_hosts: list[str] | None 
         rows.append("<li><strong>" + html.escape(str(item.get("host", ""))) + " / " +
                     html.escape(str(item.get("name", ""))) + "</strong> (" +
                     html.escape(severity) + "): " + advice + "</li>")
+    for link in coobserved_dependencies(observations):
+        rows.append("<li>" + html.escape(link["host"]) + " / " +
+                    html.escape(link["project"]) + ": " +
+                    html.escape(link["source"]) + " → " +
+                    html.escape(link["target"]) + " — " +
+                    l10n_text("Simultaneous warnings (not causal proof).",
+                              "Gleichzeitige Warnungen (kein Ursachenbeweis).") + "</li>")
     if not rows:
         rows.append("<li>" + l10n_text("No items need manual review in this observation.",
                                        "In dieser Beobachtung ist keine manuelle Prüfung angezeigt.") + "</li>")
