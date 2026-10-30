@@ -539,7 +539,11 @@ def generate_services_pulse(
     template_path="services_template.html",
     config_path=None,
     state_path=".services_pulse_state.json",
+    observation_sink=None,
 ):
+    """Produce the existing page; optionally share sanitized check results in-process."""
+    if observation_sink is not None:
+        observation_sink.clear()
     generated_at = _now()
     previous_last_success = _read_last_success(state_path)
     config = dict(DEFAULT_SERVICES_CONFIG)
@@ -547,9 +551,18 @@ def generate_services_pulse(
         config = _load_config(config_path)
         entries = _collect_services(config)
         _render(template_path, output_path, generated_at, previous_last_success, config, entries)
+        if observation_sink is not None:
+            observation_sink["entries"] = [
+                {"name": entry.name[:120], "type": entry.check_type[:30],
+                 "state": entry.state[:30], "severity": entry.severity,
+                 "latency_ms": entry.latency_ms}
+                for entry in entries[:100]
+            ]
         _write_last_success(state_path, generated_at)
         return True
     except Exception as exc:
+        if observation_sink is not None:
+            observation_sink["entries"] = None
         _render(template_path, output_path, generated_at, previous_last_success, config, [])
         path = Path(output_path)
         if path.exists():
