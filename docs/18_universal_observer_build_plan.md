@@ -53,11 +53,11 @@ Erst nach B1–B6: Feature-Freeze, Dokumentationsabgleich, P2-Entscheidungen, vo
 
 | Paket | Tatsächlicher Entwicklungsstand | Noch offen vor Freeze |
 | --- | --- | --- |
-| B1 | Explizite Compose-Korrelation, Warnbelege, hostbezogene Sicherheitsgrenzen; doppelte Host-Aliase werden blockiert | Weitere Quellenverträge/Qualitätsanzeige |
-| B2 | Anwendungsergebnisse der bereits konfigurierten Services-Checks auf der Hauptseite; HTTP-Redirect- und Datenminimierungshärtung | Breitere Service-Metriken nur nach nachweisbarem Bedarf |
-| B3 | Explizite App-Check → Docker-Compose-Zuordnungen mit UNKNOWN/NOT_OBSERVED/NOT_COLLECTED sowie eine zeitlich sortierte Docker-/Incident-Zeitachse aus vorhandener opt-in Historie | Historische Application-Checks und Plattform-Telemetrie bleiben außerhalb der bisherigen Persistenz und werden nicht erfunden |
+| B1 | Compose-Korrelation, hostgebundene Evidenz, sechs Collector-Qualitätsanzeigen und zusätzliche gemeinsame in-memory-Topologie | Quellverträge einzelner OS-Metriken noch vereinheitlichen |
+| B2 | Explizite HTTP/TCP/Heartbeat-Checks, Latenzwarnungen und doppelt opt-in begrenzte Anwendungshistorie im vorhandenen History-JSON | Weitere Metrikarten nur nach nachweisbarem Bedarf |
+| B3 | Explizite App-zu-Compose-Zuordnungen, Docker-/Incident-Zeitachse, gemeinsame aktuelle Host/Projekt/Service/Check-Ansicht und separat gespeicherte lokale Check-Historie | Keine automatische Remote-Check-Zuordnung oder nicht vorhandene OS-/App-Zeitachsen behaupten |
 | B4 | Konservative Anomaliehinweise aus vorhandenen zeitlich plausiblen CPU-/RAM-Samples | Kalibrierung der Schwellen anhand echten Betriebs; keine Vorhersagebehauptung |
-| B5 | Anonymisierte statistische Hinweise im manuellen Report sowie evidenzbasierte regelgesteuerte Diagnosehinweise | Optionaler, bewusst autorisierter lokaler Erkläradapter; kein LLM aktiviert |
+| B5 | Regelgesteuerte manuelle Diagnose, anonymisierter Report, sicherheitsbegrenzter, ausdrücklich freizugebender lokaler Ollama-CLI-Adapter in main (PR #40) | Laufzeitnachweis eines bereits installierten Modells erst in Betreiberabnahme |
 | B6 | Browserseitige Host-/Statusfilter der bestehenden Containerübersicht; bestehende Plattformadapter unverändert | Erweiterte Navigations- und Plattformnachweise |
 
 Die erste Entwicklungsintegration wurde nach bestandener CI und plattformübergreifenden Smoke-Jobs am 30.10.2026 durch [PR #38](https://github.com/IMaugrenI/tof_container_pulse/pull/38) nach `main` gemergt (Merge-Commit `34dd0e5`). **Das ist keine Produktfreigabe und kein GO.** Offene Punkte B1–B6 bleiben vor dem Feature-Freeze zu entwickeln und zu bewerten. Die Betreiber-Gesamtabnahme beginnt erst nach dem vollständigen Ausbau.
