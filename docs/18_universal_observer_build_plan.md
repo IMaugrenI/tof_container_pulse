@@ -49,18 +49,18 @@ Erst nach B1–B6: Feature-Freeze, Dokumentationsabgleich, P2-Entscheidungen, vo
 - Keine selbständigen Reparaturen oder Host-/Docker-Steuerung.
 - B1 beginnt mit tatsächlichen Evidenz- und Korrelationsverträgen; Features müssen am vorhandenen Datenfluss hängen, nicht als ungenutzte Parallelmodule entstehen.
 
-## Implementierungsstand (30.10.2026, Entwicklungsbranch)
+## Implementierungsstand (30.10.2026, erste Integration auf main)
 
 | Paket | Tatsächlicher Entwicklungsstand | Noch offen vor Freeze |
 | --- | --- | --- |
 | B1 | Explizite Compose-Korrelation, Warnbelege, hostbezogene Sicherheitsgrenzen; doppelte Host-Aliase werden blockiert | Weitere Quellenverträge/Qualitätsanzeige |
 | B2 | Anwendungsergebnisse der bereits konfigurierten Services-Checks auf der Hauptseite; HTTP-Redirect- und Datenminimierungshärtung | Breitere Service-Metriken nur nach nachweisbarem Bedarf |
-| B3 | Explizite App-Check → Docker-Compose-Zuordnungen mit eigenständigen UNKNOWN/NOT_OBSERVED/NOT_COLLECTED-Zuständen | Vollständige gemeinsame Zeitachse mit historischer Vergleichbarkeit |
+| B3 | Explizite App-Check → Docker-Compose-Zuordnungen mit UNKNOWN/NOT_OBSERVED/NOT_COLLECTED sowie eine zeitlich sortierte Docker-/Incident-Zeitachse aus vorhandener opt-in Historie | Historische Application-Checks und Plattform-Telemetrie bleiben außerhalb der bisherigen Persistenz und werden nicht erfunden |
 | B4 | Konservative Anomaliehinweise aus vorhandenen zeitlich plausiblen CPU-/RAM-Samples | Kalibrierung der Schwellen anhand echten Betriebs; keine Vorhersagebehauptung |
-| B5 | Anonymisierte statistische Hinweise im bereits vorhandenen manuellen Report | Optionaler, bewusst autorisierter lokaler Erkläradapter; kein LLM aktiviert |
+| B5 | Anonymisierte statistische Hinweise im manuellen Report sowie evidenzbasierte regelgesteuerte Diagnosehinweise | Optionaler, bewusst autorisierter lokaler Erkläradapter; kein LLM aktiviert |
 | B6 | Browserseitige Host-/Statusfilter der bestehenden Containerübersicht; bestehende Plattformadapter unverändert | Erweiterte Navigations- und Plattformnachweise |
 
-Alle genannten Änderungen befinden sich im Draft-PR #38 auf `pulse-b1-universal` und sind **keine vollständige Produktfreigabe**. Einzelne GitHub CI-/Smoke-Ergebnisse zählen nur als Entwicklungsnachweise. Kein Merge oder Feature-Freeze aus diesem Zwischenstand ableiten. Die operatorgeführte Gesamtabnahme beginnt erst nach dem vollständigen Funktionsausbau und der P2-Bewertung.
+Die erste Entwicklungsintegration wurde nach bestandener CI und plattformübergreifenden Smoke-Jobs am 30.10.2026 durch [PR #38](https://github.com/IMaugrenI/tof_container_pulse/pull/38) nach `main` gemergt (Merge-Commit `34dd0e5`). **Das ist keine Produktfreigabe und kein GO.** Offene Punkte B1–B6 bleiben vor dem Feature-Freeze zu entwickeln und zu bewerten. Die Betreiber-Gesamtabnahme beginnt erst nach dem vollständigen Ausbau.
 
 ## Weiterbau B3 / B5 (30.10.2026)
 
