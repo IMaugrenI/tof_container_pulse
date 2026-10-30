@@ -61,3 +61,9 @@ Erst nach B1–B6: Feature-Freeze, Dokumentationsabgleich, P2-Entscheidungen, vo
 | B6 | Browserseitige Host-/Statusfilter der bestehenden Containerübersicht; bestehende Plattformadapter unverändert | Erweiterte Navigations- und Plattformnachweise |
 
 Alle genannten Änderungen befinden sich im Draft-PR #38 auf `pulse-b1-universal` und sind **keine vollständige Produktfreigabe**. Einzelne GitHub CI-/Smoke-Ergebnisse zählen nur als Entwicklungsnachweise. Kein Merge oder Feature-Freeze aus diesem Zwischenstand ableiten. Die operatorgeführte Gesamtabnahme beginnt erst nach dem vollständigen Funktionsausbau und der P2-Bewertung.
+
+## Weiterbau B3 / B5 (30.10.2026)
+
+- **B3:** Einheitliche Infrastruktur-Zeitachse aus vorhandenen erfolgreichen Docker-Listings, gespeicherten Änderungsereignissen und Incident-Lifecycle. Ereigniszeitpunkte sind ausschließlich Beobachtungszeitpunkte und keine bestätigten Beginn-/Endzeitpunkte eines Ausfalls. Keine nachträgliche Erfindung historischer Application-Probes.
+- **B5:** Die vorhandene ausdrücklich konfigurierte Check-zu-Compose-Zuordnung erhält deterministische **manuelle** Diagnosehinweise für widersprüchliche Zustände, fehlerhafte oder nicht durchgeführte Erfassung, abweichende Replikatzustände und gleichzeitige Warnungen. Kein Root-Cause-Urteil, kein automatisches Repair und kein LLM-Aufruf.
+- **Main-Strategie:** Abgeschlossene Bauabschnitte dürfen nach erfolgreichen gezielten GitHub-Prüfungen von DOMs ausdrücklicher Freigabe nach `main` gelangen. Das ist Entwicklungsintegration, **keine** Gesamtabnahme. Die offene B1–B6-Bauliste bleibt maßgeblich.
