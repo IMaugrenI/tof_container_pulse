@@ -175,3 +175,24 @@ def render_diagnostics(observations: list[dict], failed_hosts: list[str] | None 
             "</h2><span>" + l10n_text("Rules, not automatic repairs or root-cause proof.",
                                        "Regeln, keine Reparaturen oder Ursachenbeweise.") +
             "</span></div><ul>" + "".join(rows) + "</ul></section>")
+
+
+def coobserved_dependencies(observations: list[dict]) -> list[dict]:
+    """Only explicit same-host Compose links; this is correlation, never causation."""
+    findings = []
+    for group in topology_data(observations)["projects"]:
+        for edge in group["edges"]:
+            if not edge["present"]:
+                continue
+            source = group["services"].get(edge["from"], [])
+            target = group["services"].get(edge["to"], [])
+            if not source or not target:
+                continue
+            if all(item["severity"] in ("warn", "critical") for item in source + target):
+                findings.append({"host": group["host"], "project": group["project"],
+                                 "source": edge["from"], "target": edge["to"],
+                                 "evidence": "explicit_compose_depends_on",
+                                 "assessment": "co_observed_warning_not_cause"})
+            if len(findings) >= 20:
+                return findings
+    return findings
