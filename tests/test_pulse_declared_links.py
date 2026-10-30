@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from pulse import _normalized_hosts, generate_pulse
-from pulse_suite_overview import declared_link_summary
+from pulse_suite_overview import declared_link_summary, operator_diagnostic_hint
 
 
 def evidence():
@@ -85,3 +85,19 @@ def test_docker_generator_reuses_existing_collection_without_extra_query():
     assert sink["successful_hosts"] == ["one"]
     assert sink["containers"] == [{"host": "one", "project": "stack",
                                    "service": "api", "severity": "warn"}]
+
+
+def test_rule_based_guidance_never_claims_cause_or_automation():
+    assert "no common cause established" in operator_diagnostic_hint("critical", "warn")[0]
+    assert "despite Docker OK" in operator_diagnostic_hint("critical", "ok")[0]
+    assert "outage not confirmed" in operator_diagnostic_hint("critical", "not_observed")[0]
+    assert "state is unknown" in operator_diagnostic_hint("ok", "not_collected")[0]
+    assert "all replicas" in operator_diagnostic_hint("ok", "critical")[0]
+    assert "ambiguous" in operator_diagnostic_hint("unknown", "ok")[0]
+    assert "Mixed" in operator_diagnostic_hint("ok", "mixed")[0]
+
+
+def test_operator_diagnostic_hint_is_visible_on_existing_link_table():
+    html = declared_link_summary([link()], evidence(), [app()], True)
+    assert "Manual diagnostic hint" in html
+    assert "no common cause established" in html
