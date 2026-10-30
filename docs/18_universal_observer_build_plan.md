@@ -48,3 +48,16 @@ Erst nach B1–B6: Feature-Freeze, Dokumentationsabgleich, P2-Entscheidungen, vo
 - Kein zweiter Datenstore, Collector-Daemon oder Remote-Agent als Default.
 - Keine selbständigen Reparaturen oder Host-/Docker-Steuerung.
 - B1 beginnt mit tatsächlichen Evidenz- und Korrelationsverträgen; Features müssen am vorhandenen Datenfluss hängen, nicht als ungenutzte Parallelmodule entstehen.
+
+## Implementierungsstand (30.10.2026, Entwicklungsbranch)
+
+| Paket | Tatsächlicher Entwicklungsstand | Noch offen vor Freeze |
+| --- | --- | --- |
+| B1 | Explizite Compose-Korrelation, Warnbelege, hostbezogene Sicherheitsgrenzen; doppelte Host-Aliase werden blockiert | Weitere Quellenverträge/Qualitätsanzeige |
+| B2 | Anwendungsergebnisse der bereits konfigurierten Services-Checks auf der Hauptseite; HTTP-Redirect- und Datenminimierungshärtung | Breitere Service-Metriken nur nach nachweisbarem Bedarf |
+| B3 | Explizite App-Check → Docker-Compose-Zuordnungen mit eigenständigen UNKNOWN/NOT_OBSERVED/NOT_COLLECTED-Zuständen | Vollständige gemeinsame Zeitachse mit historischer Vergleichbarkeit |
+| B4 | Konservative Anomaliehinweise aus vorhandenen zeitlich plausiblen CPU-/RAM-Samples | Kalibrierung der Schwellen anhand echten Betriebs; keine Vorhersagebehauptung |
+| B5 | Anonymisierte statistische Hinweise im bereits vorhandenen manuellen Report | Optionaler, bewusst autorisierter lokaler Erkläradapter; kein LLM aktiviert |
+| B6 | Browserseitige Host-/Statusfilter der bestehenden Containerübersicht; bestehende Plattformadapter unverändert | Erweiterte Navigations- und Plattformnachweise |
+
+Alle genannten Änderungen befinden sich im Draft-PR #38 auf `pulse-b1-universal` und sind **keine vollständige Produktfreigabe**. Einzelne GitHub CI-/Smoke-Ergebnisse zählen nur als Entwicklungsnachweise. Kein Merge oder Feature-Freeze aus diesem Zwischenstand ableiten. Die operatorgeführte Gesamtabnahme beginnt erst nach dem vollständigen Funktionsausbau und der P2-Bewertung.
