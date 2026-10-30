@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 import webbrowser
+from datetime import UTC, datetime
 from pathlib import Path
 
 from hardware_xplat import generate_hardware_pulse
@@ -43,6 +44,7 @@ def generate_suite(args) -> None:
     """
 
     statuses = {}
+    completed_at = {}
     service_observations = {}
     docker_observations = {}
     statuses["containers"] = generate_pulse(
@@ -52,24 +54,28 @@ def generate_suite(args) -> None:
         state_path=args.state_file,
         observation_sink=docker_observations,
     )
+    completed_at["containers"] = datetime.now(UTC).isoformat(timespec="seconds")
     statuses["hardware"] = generate_hardware_pulse(
         output_path=args.hardware_output,
         template_path=args.hardware_template,
         config_path=args.config,
         state_path=args.hardware_state_file,
     )
+    completed_at["hardware"] = datetime.now(UTC).isoformat(timespec="seconds")
     statuses["ports"] = generate_port_pulse(
         output_path=args.ports_output,
         template_path=args.ports_template,
         config_path=args.config,
         state_path=args.ports_state_file,
     )
+    completed_at["ports"] = datetime.now(UTC).isoformat(timespec="seconds")
     statuses["storage"] = generate_storage_pulse(
         output_path=args.storage_output,
         template_path=args.storage_template,
         config_path=args.config,
         state_path=args.storage_state_file,
     )
+    completed_at["storage"] = datetime.now(UTC).isoformat(timespec="seconds")
     statuses["services"] = generate_services_pulse(
         output_path=args.services_output,
         template_path=args.services_template,
@@ -77,12 +83,14 @@ def generate_suite(args) -> None:
         state_path=args.services_state_file,
         observation_sink=service_observations,
     )
+    completed_at["services"] = datetime.now(UTC).isoformat(timespec="seconds")
     statuses["security"] = generate_security_pulse(
         output_path=args.security_output,
         template_path=args.security_template,
         config_path=args.config,
         state_path=args.security_state_file,
     )
+    completed_at["security"] = datetime.now(UTC).isoformat(timespec="seconds")
     apply_soft_light_mode_overrides(args.output)
     apply_soft_light_mode_overrides(args.hardware_output)
     apply_soft_light_mode_overrides(args.ports_output)
@@ -126,7 +134,7 @@ def generate_suite(args) -> None:
     except (OSError, ValueError, TypeError, RuntimeError):
         declared_links = []
     add_suite_summary(args.output, statuses, service_observations.get("entries"),
-                      docker_observations, declared_links)
+                      docker_observations, declared_links, completed_at=completed_at)
 
 
 def main() -> int:
