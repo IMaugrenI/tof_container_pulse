@@ -245,6 +245,9 @@ def _normalized_hosts(config):
                 }
             )
         if normalized:
+            names = [item["name"].strip().casefold() for item in normalized]
+            if len(names) != len(set(names)):
+                raise ValueError("Duplicate host aliases; each Docker context needs a unique host label")
             return normalized
     return [{"name": socket.gethostname(), "docker_context": None}]
 
