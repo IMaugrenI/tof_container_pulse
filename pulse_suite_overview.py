@@ -233,9 +233,146 @@ def declared_link_summary(links: object, docker: dict | None,
             "".join(rows) + '</tbody></table></div></section>')
 
 
+def application_history_summary(snapshots: list[dict] | None, issue: str | None = None) -> str:
+    """Trend in opt-in local-check samples only; no remote-host attribution."""
+    if snapshots is None and issue is None:
+        return ""
+    esc = lambda value: html.escape(str(value), quote=True)
+    if issue:
+        body = "<p>" + l10n_text(
+            "Application history unavailable; prior observations are not evidence of current health.",
+            "Anwendungshistorie nicht verfügbar; alte Daten beweisen keine aktuelle Verfügbarkeit.") + "</p>"
+    elif not snapshots:
+        body = "<p>" + l10n_text(
+            "No application history saved yet. History is opt-in.",
+            "Noch keine Anwendungshistorie gespeichert. Historie benötigt Zustimmung.") + "</p>"
+    else:
+        by_check = {}
+        for snapshot in snapshots[-60:]:
+            if not isinstance(snapshot, dict) or snapshot.get("scope") != "suite_local":
+                continue
+            stamp = str(snapshot.get("at", ""))[:48]
+            for item in (snapshot.get("checks") or [])[:100]:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name", ""))[:120]
+                if name:
+                    by_check.setdefault(name, []).append((stamp, item))
+        rows = []
+        for name in sorted(by_check)[:30]:
+            points = by_check[name]
+            latest_at, latest = points[-1]
+            severity = str(latest.get("severity", "unknown"))
+            if severity not in ("ok", "warn", "critical", "unknown"):
+                severity = "unknown"
+            latency_values = [(stamp, value) for stamp, item in points
+                              for value in [item.get("latency_ms")]
+                              if isinstance(value, (int, float)) and not isinstance(value, bool)
+                              and 0 <= value <= 120000]
+            latency_label = "-"
+            if latency_values:
+                latency_label = f"{latency_values[-1][1]:.0f} ms"
+                if len(latency_values) >= 3:
+                    change = latency_values[-1][1] - latency_values[0][1]
+                    latency_label += f" ({change:+.0f} ms vs first retained sample)"
+            rows.append("<tr><td>" + esc(name) + "</td><td>" +
+                        esc(len(points)) + "</td><td>" + esc(latest_at) +
+                        "</td><td>" + esc(severity.upper()) +
+                        "</td><td>" + esc(latency_label) + "</td></tr>")
+        body = (
+            '<div class="table-shell"><table><thead><tr><th>' +
+            l10n_text("Check", "Check") + "</th><th>" +
+            l10n_text("Samples", "Messungen") + "</th><th>" +
+            l10n_text("Last collection UTC", "Letzte Erfassung UTC") + "</th><th>" +
+            l10n_text("Last observed", "Zuletzt beobachtet") +
+            "</th><th>" + l10n_text("Latency and retained delta", "Latenz und gespeicherte Änderung") +
+            "</th></tr></thead><tbody>" + "".join(rows) +
+            "</tbody></table></div>" if rows else "<p>" +
+            l10n_text("No valid local application samples.", "Keine gültigen lokalen Anwendungsmessungen.") + "</p>"
+        )
+    return ('<section class="pulse-app-history" aria-label="Opt-in application history" '
+            'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
+            'border-radius:var(--radius-lg)"><section class="table-title"><h2>' +
+            l10n_text("Application history", "Anwendungshistorie") +
+            '</h2></section><p>' +
+            l10n_text("Explicitly configured local checks only. Completion timestamps are not exact probe times. "
+                      "Missing samples are not healthy, down or zero latency. No remote Docker-host inference.",
+                      "Nur ausdrücklich konfigurierte lokale Checks. Abschlusszeiten sind keine genauen Prüfzeitpunkte. "
+                      "Fehlende Messungen bedeuten weder gesund noch ausgefallen oder Null-Latenz. Keine Zuordnung zu Remote-Docker-Hosts.") +
+            "</p>" + body + "</section>")
+
+
+def infrastructure_matrix(docker_evidence: dict | None, application_links: object,
+                          entries: list[dict] | None, app_collected: bool) -> str:
+    """One bounded shared view: Docker Compose graph plus explicitly mapped checks."""
+    docker = docker_evidence or {}
+    groups = docker.get("projects") or []
+    failed = docker.get("failed_hosts") or []
+    if not groups and not failed:
+        return ""
+    esc = lambda x: html.escape(str(x), quote=True)
+    known = {}
+    for item in entries or []:
+        known.setdefault(item.get("name"), []).append(item)
+    declared = application_links if isinstance(application_links, list) and len(application_links) <= 50 else []
+    sections = []
+    for group in groups[:20]:
+        host = str(group.get("host", ""))[:120]
+        project = str(group.get("project", ""))[:120]
+        services = group.get("services") or []
+        edges = group.get("edges") or []
+        rows = []
+        for service in services[:60]:
+            name = str(service.get("service", ""))[:120]
+            severity = {str(x) for x in service.get("severities", [])}
+            if not severity or severity - {"ok", "warn", "critical", "unknown"}:
+                state = "unknown"
+            else:
+                state = next(iter(severity)) if len(severity) == 1 else "mixed"
+            outgoing = [str(edge.get("to", ""))[:120] +
+                        (" (observed)" if edge.get("present") is True else " (not observed)")
+                        for edge in edges[:100] if edge.get("from") == name]
+            checks = []
+            for link in declared:
+                if not isinstance(link, dict):
+                    continue
+                if link.get("host") == host and link.get("project") == project and link.get("service") == name:
+                    label = str(link.get("check", ""))[:120]
+                    match = known.get(label, []) if app_collected else []
+                    status = match[0].get("severity", "unknown") if len(match) == 1 else "unknown"
+                    if status not in ("ok", "warn", "critical", "unknown"):
+                        status = "unknown"
+                    checks.append(label + " (" + status.upper() + ")")
+            rows.append("<tr><td>" + esc(name) + "</td><td>" + esc(state.upper()) +
+                        "</td><td>" + esc("; ".join(outgoing) or "-") +
+                        "</td><td>" + esc("; ".join(checks) or "-") + "</td></tr>")
+        sections.append('<h3>' + esc(host) + " / " + esc(project) + '</h3><div class="table-shell"><table>'
+                        '<thead><tr><th>Compose service</th><th>Docker</th><th>Explicit depends_on</th>'
+                        '<th>Declared application check</th></tr></thead><tbody>' +
+                        "".join(rows) + "</tbody></table></div>")
+    if failed:
+        sections.append("<p>" +
+                        l10n_text("Docker hosts not collected: ", "Docker-Hosts nicht erfasst: ") +
+                        esc(", ".join(str(h)[:120] for h in failed[:20])) +
+                        ". " + l10n_text("State unknown, no outage proven.",
+                                         "Zustand unbekannt, kein Ausfall bewiesen.") + "</p>")
+    return ('<section class="pulse-infrastructure-matrix" aria-label="Combined infrastructure evidence" '
+            'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
+            'border-radius:var(--radius-lg)"><div class="table-title"><h2>' +
+            l10n_text("Infrastructure and application evidence", "Infrastruktur- und Anwendungsnachweise") +
+            '</h2></div><p>' + l10n_text(
+                "Docker relationships come only from explicit Compose depends_on labels; application links only from operator declarations. "
+                "Checks run on this computer, not necessarily on the Docker host. These are independent states, never causal proof.",
+                "Docker-Beziehungen stammen nur aus Compose-depends_on-Labels; App-Zuordnungen nur aus Betreiberdeklarationen. "
+                "Checks laufen auf diesem Rechner, nicht zwingend auf dem Docker-Host. Unabhängige Zustände, kein Ursachenbeweis.") +
+            "</p>" + "".join(sections) + "</section>")
+
+
 def add_suite_summary(output_path: str | Path, results: dict[str, object],
                       service_entries: list[dict] | None = None, docker_evidence: dict | None = None,
-                      application_links: object = None, completed_at: dict[str, str] | None = None) -> bool:
+                      application_links: object = None, completed_at: dict[str, str] | None = None,
+                      application_history: list[dict] | None = None,
+                      application_history_issue: str | None = None) -> bool:
     """Modify only the existing generated Container Pulse output; idempotent."""
     path = Path(output_path)
     if not path.is_file():
@@ -248,6 +385,9 @@ def add_suite_summary(output_path: str | Path, results: dict[str, object],
         marker,
         collection_summary(results, docker_evidence, service_entries, completed_at) +
         application_checks_summary(service_entries, results.get("services") is True) +
+        application_history_summary(application_history, application_history_issue) +
+        infrastructure_matrix(docker_evidence, application_links, service_entries,
+                              results.get("services") is True) +
         declared_link_summary(application_links, docker_evidence, service_entries,
                               results.get("services") is True) +
         "\n" + marker, 1)
