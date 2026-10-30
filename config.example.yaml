@@ -233,6 +233,16 @@ drift_enabled: true
 # Depends on opted-in history_enabled. Never represents guaranteed prediction.
 capacity_enabled: true
 
+# Universal Observer B5: optional local LLM explanation.
+# Disabled by default. Manual CLI invocation only, no automatic watch-mode calls.
+# Requires history_enabled: true and an already installed Ollama instance/model
+# on the SAME computer at 127.0.0.1:11434 (fixed loopback endpoint).
+# Only a capped anonymized summary from the existing incident report is sent.
+# No model download, cloud, third-party APIs, system actions, or persisted LLM output.
+# Example:
+# python run.py --config config.yaml --explain-incidents --explain-model llama3.2:3b
+local_explanation_enabled: false
+
 # PULSE-A7: optional local inbox for new and resolved incident transitions.
 # No desktop popups, external messages, cloud or OS notifications.
 # First activation only sets a baseline (does not replay old incidents).

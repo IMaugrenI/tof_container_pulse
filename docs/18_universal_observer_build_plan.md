@@ -68,6 +68,20 @@ Die erste Entwicklungsintegration wurde nach bestandener CI und plattformübergr
 - **B5:** Die vorhandene ausdrücklich konfigurierte Check-zu-Compose-Zuordnung erhält deterministische **manuelle** Diagnosehinweise für widersprüchliche Zustände, fehlerhafte oder nicht durchgeführte Erfassung, abweichende Replikatzustände und gleichzeitige Warnungen. Kein Root-Cause-Urteil, kein automatisches Repair und kein LLM-Aufruf.
 - **Main-Strategie:** Abgeschlossene Bauabschnitte dürfen nach erfolgreichen gezielten GitHub-Prüfungen von DOMs ausdrücklicher Freigabe nach `main` gelangen. Das ist Entwicklungsintegration, **keine** Gesamtabnahme. Die offene B1–B6-Bauliste bleibt maßgeblich.
 
+## B5 – Manueller lokaler LLM-Erkläradapter (separater Bauabschnitt)
+
+Der vorhandene CLI-Einstieg `run.py` bekommt eine **ausdrücklich manuell** aufrufbare Funktion:
+
+```bash
+python run.py --config config.yaml --explain-incidents --explain-model llama3.2:3b
+```
+
+Voraussetzungen: `history_enabled: true`, `local_explanation_enabled: true`, eine bereits eingerichtete lokale Ollama-Instanz mit dem angegebenen Modell auf **127.0.0.1:11434**. Ohne manuelle CLI-Aktion wird kein LLM angesprochen; der `--watch`-Pfad ruft keinen Modelladapter auf.
+
+Der Adapter erhält **nur** aus `pulse_reports.build_report` nochmals explizit whitelisted, anonymisierte Host-Aliase und aggregierte Incident-/Ressourcenzahlen. Keine Rohlogs, Config-Werte, Container-/Image-Namen, Benutzerinformationen, Netzwerktopologie oder Kommandos. Er verwendet eine feste Loopback-Adresse, deaktiviert Proxy und HTTP-Redirects, begrenzt Anfrage/Antwort, Laufzeit und Ausgabetokens und fordert eine vorsichtige, als unbestätigt gekennzeichnete Erklärung. Weder Werkzeuge noch Reparaturen oder persistierte LLM-Antworten werden angeboten. Keine Modellinstallation und keine Cloud- oder Fallback-Provider.
+
+**Status:** Code im Entwicklungsbranch; Funktionstests/CI sind keine Betreiberabnahme. Ein lokales Modell benötigt eigene ausreichende Ressourcen und Betreiberentscheidung.
+
 ## B1/B2/B6 – Entwicklungsintegration 2: Erfassungsqualität & Latenzwarnung
 
 - **B1/B6:** Die vorhandene sechszeilige Suite-Übersicht beschreibt nun Geltungsbereich und Erfassungsqualität mit genau unterscheidbaren Zuständen: `collected`, `partial`, `unavailable`, `not_configured` und `unconfirmed`. Erfolgreiche und fehlgeschlagene Docker-Hostabfragen werden aus den bereits gesammelten Host-Evidenzen gezählt. `generate_pulse=True` bei ausschließlich fehlgeschlagenen Docker-Contexts gilt **nicht** als erfolgreiche Hostbeobachtung. Die sechs Generierungsabschlüsse werden in UTC angezeigt, ausdrücklich ohne die Messzeit einzelner Metriken zu behaupten. Keine weiteren Collector-Ausführungen.
