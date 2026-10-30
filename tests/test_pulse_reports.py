@@ -48,3 +48,25 @@ def test_export_creates_new_file_and_never_overwrites(tmp_path):
 def test_refuses_unknown_parent(tmp_path):
     with pytest.raises(FileNotFoundError):
         export_report(tmp_path / "no-history.json", tmp_path / "missing-dir" / "report.json")
+
+
+def test_report_anonymizes_resource_deviation_evidence(tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    base = datetime(2026, 10, 30, 12, tzinfo=UTC)
+    history = tmp_path / "history-anomaly.json"
+    for i in range(11):
+        observation = row(host="secret-internal-host", ident="hidden-container", severity="ok",
+                          cpu=90 if i == 10 else 12)
+        observation["memory_mb"] = 1500 if i == 10 else 400
+        observation["memory_percent"] = 90 if i == 10 else 25
+        record_snapshot(history, ["secret-internal-host"], [observation],
+                        at=(base + timedelta(minutes=i)).isoformat())
+    report = build_report(history)
+    assert report["hosts"][0]["unusual_cpu_containers"] == 1
+    assert report["hosts"][0]["unusual_memory_containers"] == 1
+    assert any(x["signal"] == "historical_resource_deviation" for x in report["correlations"])
+    exported = json.dumps(report)
+    assert "secret-internal-host" not in exported
+    assert "hidden-container" not in exported
+    assert "internal/app" not in exported

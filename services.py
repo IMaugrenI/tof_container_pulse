@@ -119,20 +119,65 @@ def _entry_unknown(name, check_type, target, message_en, message_de):
     )
 
 
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Never silently follow a check URL to another host or network."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _safe_url_target(url: str) -> str:
+    """Display scheme and host only; never display URL credentials, query or path."""
+    try:
+        parsed = urlparse(url)
+        if not parsed.hostname:
+            return "-"
+        port = f":{parsed.port}" if parsed.port is not None else ""
+        host = parsed.hostname
+        if ":" in host:  # IPv6 URL
+            host = f"[{host}]"
+        return f"{parsed.scheme}://{host}{port}"
+    except (ValueError, TypeError):
+        return "-"
+
+
+def _bounded_timeout(check, config) -> float:
+    """Fail closed on malformed or unbounded per-check timeouts."""
+    raw = check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0))
+    try:
+        seconds = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid service timeout") from exc
+    if not 0.1 <= seconds <= 30.0:
+        raise ValueError("Service timeout must be between 0.1 and 30 seconds")
+    return seconds
+
+
 def _check_url(check, config):
-    name = str(check.get("name") or check.get("url") or "HTTP check")
+    name = str(check.get("name") or "HTTP check")
     url = str(check.get("url") or "")
-    timeout = float(check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0)))
+    timeout = _bounded_timeout(check, config)
     allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
     expected_status = int(check.get("expected_status", 200))
 
+    display_target = _safe_url_target(url)
+    try:
+        parsed = urlparse(url)
+        valid_http = parsed.scheme.lower() in ("http", "https") and bool(parsed.hostname)
+        has_credentials = bool(parsed.username or parsed.password)
+    except ValueError:
+        valid_http, has_credentials = False, False
     if not url:
         return _entry_unknown(name, "url", "-", "No URL configured.", "Keine URL konfiguriert.")
+    if not valid_http or has_credentials:
+        return _entry_unknown(name, "url", display_target,
+                              "HTTP(S) URL without embedded credentials required.",
+                              "HTTP(S)-URL ohne eingebettete Zugangsdaten erforderlich.")
     if not allow_external and not _is_local_url(url):
         return _entry_unknown(
             name,
             "url",
-            url,
+            display_target,
             "External URL checks are disabled by default. Set allow_external true for this check if intended.",
             "Externe URL-Checks sind standardmäßig deaktiviert. Setze allow_external true für diesen Check, wenn das beabsichtigt ist.",
         )
@@ -140,7 +185,8 @@ def _check_url(check, config):
     request = urllib.request.Request(url, method="GET", headers={"User-Agent": "ServicesPulse/1.0"})
     start = time.monotonic()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        # Redirects require a separately configured check; never follow implicitly.
+        with urllib.request.build_opener(_NoRedirectHandler()).open(request, timeout=timeout) as response:
             latency_ms = (time.monotonic() - start) * 1000.0
             status = int(response.getcode())
     except urllib.error.HTTPError as exc:
@@ -150,13 +196,13 @@ def _check_url(check, config):
         return ServiceEntry(
             name=name,
             check_type="url",
-            target=url,
+            target=display_target,
             state="down",
             severity="critical",
             latency_ms=None,
             note=l10n_text(
-                f"URL did not respond successfully: {exc}",
-                f"URL hat nicht erfolgreich geantwortet: {exc}",
+                f"URL check failed ({type(exc).__name__}); see configured endpoint.",
+                f"URL-Check fehlgeschlagen ({type(exc).__name__}); konfigurierten Endpunkt prüfen.",
             ),
         )
 
@@ -164,7 +210,7 @@ def _check_url(check, config):
         return ServiceEntry(
             name=name,
             check_type="url",
-            target=url,
+            target=display_target,
             state="up",
             severity="ok",
             latency_ms=latency_ms,
@@ -176,7 +222,7 @@ def _check_url(check, config):
     return ServiceEntry(
         name=name,
         check_type="url",
-        target=url,
+        target=display_target,
         state="review",
         severity="warn",
         latency_ms=latency_ms,
@@ -191,7 +237,7 @@ def _check_tcp(check, config):
     name = str(check.get("name") or "TCP check")
     host = str(check.get("host") or "localhost")
     port = check.get("port")
-    timeout = float(check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0)))
+    timeout = _bounded_timeout(check, config)
     try:
         port_int = int(port)
     except Exception:
@@ -289,7 +335,10 @@ def _check_heartbeat(check, config):
 
 def _collect_services(config):
     entries = []
-    for raw in config.get("service_checks") or []:
+    checks = config.get("service_checks") or []
+    if len(checks) > 100:
+        raise ValueError("Too many configured service checks (max 100)")
+    for raw in checks:
         if not isinstance(raw, dict):
             continue
         check_type = str(raw.get("type", "")).lower().strip()
@@ -505,7 +554,11 @@ def generate_services_pulse(
     template_path="services_template.html",
     config_path=None,
     state_path=".services_pulse_state.json",
+    observation_sink=None,
 ):
+    """Produce the existing page; optionally share sanitized check results in-process."""
+    if observation_sink is not None:
+        observation_sink.clear()
     generated_at = _now()
     previous_last_success = _read_last_success(state_path)
     config = dict(DEFAULT_SERVICES_CONFIG)
@@ -513,9 +566,18 @@ def generate_services_pulse(
         config = _load_config(config_path)
         entries = _collect_services(config)
         _render(template_path, output_path, generated_at, previous_last_success, config, entries)
+        if observation_sink is not None:
+            observation_sink["entries"] = [
+                {"name": entry.name[:120], "type": entry.check_type[:30],
+                 "state": entry.state[:30], "severity": entry.severity,
+                 "latency_ms": entry.latency_ms}
+                for entry in entries[:100]
+            ]
         _write_last_success(state_path, generated_at)
         return True
     except Exception as exc:
+        if observation_sink is not None:
+            observation_sink["entries"] = None
         _render(template_path, output_path, generated_at, previous_last_success, config, [])
         path = Path(output_path)
         if path.exists():

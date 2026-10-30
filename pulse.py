@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path
 
 from i18n_static import l10n_text
-from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center
-from pulse_trends import render_trends
+from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center, render_infrastructure_timeline
+from pulse_trends import render_anomalies, render_trends
 from pulse_drift import normalize_ports, render_drift
 from pulse_capacity import render_capacity
 from pulse_notices import refresh_notices, render_notices
@@ -245,6 +245,9 @@ def _normalized_hosts(config):
                 }
             )
         if normalized:
+            names = [item["name"].strip().casefold() for item in normalized]
+            if len(names) != len(set(names)):
+                raise ValueError("Duplicate host aliases; each Docker context needs a unique host label")
             return normalized
     return [{"name": socket.gethostname(), "docker_context": None}]
 
@@ -388,7 +391,10 @@ def _collect_host_rows(host_name, docker_context, docker_cli, config):
     return rows_html, messages, counts, observed
 
 
-def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None, state_path=".pulse_state.json"):
+def generate_pulse(output_path="pulse.html", template_path="template.html", config_path=None,
+                   state_path=".pulse_state.json", observation_sink=None):
+    if observation_sink is not None:
+        observation_sink.clear()
     generated_at = _now()
     previous_last_success = _read_last_success(state_path)
     config = dict(DEFAULT_CONFIG)
@@ -442,9 +448,10 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                     hosts=successful_hosts, containers=observations,
                     max_snapshots=int(config.get("history_max_snapshots", 120)),
                 )
-                history_html = render_incidents(snapshots)
-                trends_html = render_trends(snapshots)
-                incidents_html = render_incident_center(load_incidents(config.get("history_path", ".pulse_history.json")))
+                retained_incidents = load_incidents(config.get("history_path", ".pulse_history.json"))
+                history_html = render_incidents(snapshots) + render_infrastructure_timeline(snapshots, retained_incidents)
+                trends_html = render_trends(snapshots) + render_anomalies(snapshots)
+                incidents_html = render_incident_center(retained_incidents)
                 if config.get("drift_enabled", True):
                     drift_html = render_drift(snapshots)
                 if config.get("capacity_enabled", True):
@@ -475,6 +482,14 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
             diagnostics_html=render_diagnostics(observations, failed_hosts) if config.get("diagnostics_enabled", True) else "",
         )
         _write_last_success(state_path, generated_at)
+        if observation_sink is not None:
+            observation_sink["successful_hosts"] = successful_hosts[:80]
+            observation_sink["failed_hosts"] = failed_hosts[:80]
+            observation_sink["containers"] = [
+                {"host": item["host"], "project": item.get("compose_project", ""),
+                 "service": item.get("compose_service", ""), "severity": item["severity"]}
+                for item in observations[:1500]
+            ]
         return True
     except Exception as exc:
         _render_html(

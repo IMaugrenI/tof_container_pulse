@@ -209,6 +209,19 @@ diagnostics_enabled: true
 drift_enabled: true
 
 
+# Universal Observer B3: optional explicit association between a Services Pulse
+# check and a Docker Compose service. This does NOT create a network check.
+# It does NOT prove that either status caused the other.
+# 'check' must uniquely match service_checks[].name.
+# 'host' must exactly match the displayed Docker host alias (the configured
+# hosts[].name; with no hosts list, the local machine hostname).
+# Unknown or unavailable hosts are never treated as DOWN.
+# application_links:
+#   - check: Local web app
+#     host: local
+#     project: example-stack
+#     service: api
+#
 # PULSE-A8: historical host table and conservative memory growth illustration.
 # Depends on opted-in history_enabled. Never represents guaranteed prediction.
 capacity_enabled: true

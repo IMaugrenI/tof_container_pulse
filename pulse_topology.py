@@ -167,6 +167,14 @@ def render_diagnostics(observations: list[dict], failed_hosts: list[str] | None 
         rows.append("<li><strong>" + html.escape(str(item.get("host", ""))) + " / " +
                     html.escape(str(item.get("name", ""))) + "</strong> (" +
                     html.escape(severity) + "): " + advice + "</li>")
+    for link in coobserved_dependencies(observations)[:max(0, 40 - len(rows))]:
+        evidence = ", ".join(link["source_severities"]) + " / " + ", ".join(link["target_severities"])
+        rows.append("<li>" + html.escape(link["host"]) + " / " +
+                    html.escape(link["project"]) + ": " +
+                    html.escape(link["source"]) + " → " +
+                    html.escape(link["target"]) + " (" + html.escape(evidence) + ") — " +
+                    l10n_text("Explicit Compose link, co-observed warnings; no cause established.",
+                              "Explizite Compose-Abhängigkeit, gemeinsame Warnungen; Ursache nicht belegt.") + "</li>")
     if not rows:
         rows.append("<li>" + l10n_text("No items need manual review in this observation.",
                                        "In dieser Beobachtung ist keine manuelle Prüfung angezeigt.") + "</li>")
@@ -175,3 +183,27 @@ def render_diagnostics(observations: list[dict], failed_hosts: list[str] | None 
             "</h2><span>" + l10n_text("Rules, not automatic repairs or root-cause proof.",
                                        "Regeln, keine Reparaturen oder Ursachenbeweise.") +
             "</span></div><ul>" + "".join(rows) + "</ul></section>")
+
+
+def coobserved_dependencies(observations: list[dict]) -> list[dict]:
+    """Only explicit same-host Compose links; this is correlation, never causation."""
+    findings = []
+    for group in topology_data(observations)["projects"]:
+        for edge in group["edges"]:
+            if not edge["present"]:
+                continue
+            source = group["services"].get(edge["from"], [])
+            target = group["services"].get(edge["to"], [])
+            if not source or not target:
+                continue
+            if all(item["severity"] in ("warn", "critical") for item in source + target):
+                findings.append({"host": group["host"], "project": group["project"],
+                                 "source": edge["from"], "target": edge["to"],
+                                 "evidence": "explicit_compose_depends_on",
+                                 "source_severities": sorted({row["severity"] for row in source}),
+                                 "target_severities": sorted({row["severity"] for row in target}),
+                                 "source_count": len(source), "target_count": len(target),
+                                 "assessment": "co_observed_warning_not_cause"})
+            if len(findings) >= 20:
+                return findings
+    return findings
