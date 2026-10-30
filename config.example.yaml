@@ -195,6 +195,17 @@ history_enabled: false
 history_path: .pulse_history.json
 history_max_snapshots: 120
 
+# B2/B3: optional history of explicitly configured HTTP/TCP/heartbeat checks.
+# Requires BOTH history_enabled: true AND application_history_enabled: true.
+# Reuses the SAME private .pulse_history.json, without a new database/state file.
+# Records only configured check name, type, state, severity, bounded latency,
+# and local suite completion timestamp (not per-probe time).
+# Checks are always scoped to "suite_local"; never automatically attributed to
+# a remote Docker context. Failed collection and no configured checks add no sample.
+# Existing Docker snapshots and incidents are preserved.
+application_history_enabled: false
+application_history_max_snapshots: 60
+
 
 # PULSE-A2: views inferred from the existing read-only Docker ps result.
 # Compose service relationships are shown ONLY when the depends_on label exists;
