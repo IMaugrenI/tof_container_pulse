@@ -1,10 +1,10 @@
 # ToF Container Pulse – Entwicklungsausbau A1–A8
 
-Stand: 2026-10-25. Gültig für den Entwicklungs-PR #36, nicht für main.
+Historischer Entwicklungsbericht vom 25.10.2026 für PR #36. Dieser PR wurde am 25.10.2026 nach `main` gemergt. Die damaligen Runtime-/Betreibernachweise blieben davon unberührt; der unten dokumentierte damalige Nachweisstand ist historisch.
 
 ## Funktionspakete
 
-| Paket | Im Entwicklungsbranch |
+| Paket | Funktion aus PR #36 (seit Merge in main) |
 | --- | --- |
 | A1 | Opt-in lokale Snapshots und Zustandsänderungen |
 | A2 | Explizite Compose-Topologie, regelbasierte read-only Hinweise |
@@ -39,5 +39,6 @@ Stand: 2026-10-25. Gültig für den Entwicklungs-PR #36, nicht für main.
 - Vor Feature-Freeze: offene P2-Optionen bewerten; für Gesamtfreigabe muss DOM
   erst die verbindliche Abnahmeliste am Zielsystem durchführen.
 
-Entwicklungs-PR bleibt Draft und main unverändert. Keine eigenmächtige
-Releasefreigabe, kein GO aus GitHub-CI ableitbar.
+PR #36 wurde am 25.10.2026 nach `main` übernommen. Der nachfolgende Universal-Observer-
+Ausbau ist in [docs/18_universal_observer_build_plan.md](18_universal_observer_build_plan.md)
+dokumentiert. Kein GO aus Merge oder GitHub-CI ableitbar; Betreiberabnahme weiterhin separat.
