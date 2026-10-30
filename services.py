@@ -142,7 +142,7 @@ def _safe_url_target(url: str) -> str:
 
 
 def _check_url(check, config):
-    name = str(check.get("name") or check.get("url") or "HTTP check")
+    name = str(check.get("name") or "HTTP check")
     url = str(check.get("url") or "")
     timeout = float(check.get("timeout_seconds", config.get("service_check_timeout_seconds", 2.0)))
     allow_external = bool(check.get("allow_external", config.get("service_allow_external_urls", False)))
@@ -198,7 +198,7 @@ def _check_url(check, config):
         return ServiceEntry(
             name=name,
             check_type="url",
-            target=url,
+            target=display_target,
             state="up",
             severity="ok",
             latency_ms=latency_ms,
@@ -210,7 +210,7 @@ def _check_url(check, config):
     return ServiceEntry(
         name=name,
         check_type="url",
-        target=url,
+        target=display_target,
         state="review",
         severity="warn",
         latency_ms=latency_ms,
@@ -323,7 +323,10 @@ def _check_heartbeat(check, config):
 
 def _collect_services(config):
     entries = []
-    for raw in config.get("service_checks") or []:
+    checks = config.get("service_checks") or []
+    if len(checks) > 100:
+        raise ValueError("Too many configured service checks (max 100)")
+    for raw in checks:
         if not isinstance(raw, dict):
             continue
         check_type = str(raw.get("type", "")).lower().strip()
