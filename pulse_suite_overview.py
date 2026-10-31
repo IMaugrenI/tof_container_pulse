@@ -435,8 +435,9 @@ def render_diagnosis_queue(docker: dict | None, app_entries: list[dict] | None,
             '</p>' + body + '</section>')
 
 
-def evidence_navigation() -> str:
-    """Keyboard-friendly static navigation; no extra pages or network calls."""
+def evidence_navigation(active: set[str] | None = None) -> str:
+    """Keyboard-friendly links to present sections and the six original pages."""
+    active = active or set()
     targets = (
         ("pulse-suite-summary", "Collection quality", "Erfassungsqualität"),
         ("pulse-triage-queue", "Manual diagnosis", "Manuelle Diagnose"),
@@ -446,7 +447,7 @@ def evidence_navigation() -> str:
         ("pulse-declared-links", "Explicit links", "Explizite Zuordnungen"),
     )
     links = ['<a href="#' + target + '">' + l10n_text(en, de) + '</a>'
-             for target, en, de in targets]
+             for target, en, de in targets if target in active]
     pages = (("pulse.html", "Containers", "Container"), ("hardware.html", "Hardware", "Hardware"),
              ("ports.html", "Ports", "Ports"), ("storage.html", "Storage", "Speicher"),
              ("services.html", "Services", "Dienste"), ("security.html", "Security", "Sicherheit"))
@@ -455,6 +456,59 @@ def evidence_navigation() -> str:
     return ('<nav class="pulse-evidence-index" aria-label="Pulse evidence navigation" '
             'style="display:flex;flex-wrap:wrap;gap:10px;margin:18px 0;">' +
             ''.join(links) + '</nav>')
+
+
+def table_filter_controls(target: str) -> str:
+    """One accessible in-page filter; only known static target selectors."""
+    if target not in ("pulse-triage-queue", "pulse-app-summary", "pulse-infrastructure-matrix"):
+        return ""
+    return ('<div class="pulse-evidence-filter" data-filter-target="' + target +
+            '" style="margin:10px 0;"><label>' +
+            l10n_text("Show evidence", "Nachweise anzeigen") +
+            ' <select aria-label="Filter evidence by severity">'
+            '<option value="">' + l10n_text("All states", "Alle Zustände") + '</option>'
+            '<option value="critical">CRITICAL</option><option value="warn">WARN</option>'
+            '<option value="unknown">UNKNOWN</option><option value="ok">OK</option>'
+            '<option value="mixed">MIXED</option></select></label> '
+            '<output aria-live="polite"></output></div>')
+
+
+_FILTER_SCRIPT = """
+<script>
+(function () {
+  'use strict';
+  const groups = document.querySelectorAll('.pulse-evidence-filter[data-filter-target]');
+  const allowed = {
+    'pulse-triage-queue': 0,
+    'pulse-app-summary': 3,
+    'pulse-infrastructure-matrix': 1
+  };
+  groups.forEach(function (group) {
+    const target = group.getAttribute('data-filter-target');
+    if (!Object.prototype.hasOwnProperty.call(allowed, target)) return;
+    const panel = document.getElementById(target);
+    const select = group.querySelector('select');
+    const output = group.querySelector('output');
+    if (!panel || !select || !output) return;
+    const rows = Array.from(panel.querySelectorAll('tbody tr'));
+    function applyFilter() {
+      let visible = 0;
+      rows.forEach(function (row) {
+        const cell = row.cells[allowed[target]];
+        const state = cell ? cell.textContent.trim().toLowerCase() : '';
+        const match = !select.value || state === select.value;
+        row.hidden = !match;
+        if (match) visible += 1;
+      });
+      output.textContent = visible + ' / ' + rows.length;
+    }
+    select.addEventListener('change', applyFilter);
+    applyFilter();
+  });
+}());
+</script>
+"""
+
 
 
 def add_suite_summary(output_path: str | Path, results: dict[str, object],
@@ -470,17 +524,27 @@ def add_suite_summary(output_path: str | Path, results: dict[str, object],
     marker = '<section class="feature-strip" aria-label="Design principles">'
     if marker not in source or 'class="pulse-suite-summary"' in source:
         return False
-    source = source.replace(
-        marker,
-        evidence_navigation() +
-        collection_summary(results, docker_evidence, service_entries, completed_at) +
-        render_diagnosis_queue(docker_evidence, service_entries, results) +
-        application_checks_summary(service_entries, results.get("services") is True) +
-        application_history_summary(application_history, application_history_issue) +
-        infrastructure_matrix(docker_evidence, application_links, service_entries,
-                              results.get("services") is True) +
-        declared_link_summary(application_links, docker_evidence, service_entries,
-                              results.get("services") is True) +
-        "\n" + marker, 1)
+    summary = collection_summary(results, docker_evidence, service_entries, completed_at)
+    triage = render_diagnosis_queue(docker_evidence, service_entries, results)
+    apps = application_checks_summary(service_entries, results.get("services") is True)
+    history = application_history_summary(application_history, application_history_issue)
+    matrix = infrastructure_matrix(docker_evidence, application_links, service_entries,
+                                   results.get("services") is True)
+    declared = declared_link_summary(application_links, docker_evidence, service_entries,
+                                     results.get("services") is True)
+    chunks = [summary, triage, apps, history, matrix, declared]
+    active = {name for name in ("pulse-suite-summary", "pulse-triage-queue",
+              "pulse-app-summary", "pulse-app-history", "pulse-infrastructure-matrix",
+              "pulse-declared-links")
+              if any('id="' + name + '"' in chunk for chunk in chunks)}
+    nav = evidence_navigation(active)
+    source = source.replace(marker,
+                            nav + summary + table_filter_controls("pulse-triage-queue") +
+                            triage + table_filter_controls("pulse-app-summary") +
+                            apps + history +
+                            (table_filter_controls("pulse-infrastructure-matrix") if matrix else "") +
+                            matrix + declared + "\n" + marker, 1)
+    if "</body>" in source:
+        source = source.replace("</body>", _FILTER_SCRIPT + "\n</body>", 1)
     path.write_text(source, encoding="utf-8")
     return True
