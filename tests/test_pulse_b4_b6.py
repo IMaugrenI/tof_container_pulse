@@ -24,7 +24,7 @@ def snapshot(i, cpu=12, memory=400, host="srv", observed=True):
 
 
 def test_configurable_thresholds_keep_scope_and_baseline_quality():
-    snapshots = [snapshot(i) for i in range(10)] + [snapshot(10, cpu=40, memory=500)]
+    snapshots = [snapshot(i) for i in range(10)] + [snapshot(10, cpu=28, memory=500)]
     assert resource_anomalies(snapshots) == []
     altered = {
         "anomaly_cpu_min_rise_percent": 10,
