@@ -97,13 +97,53 @@ def render_trends(snapshots: list[dict], limit: int = 8) -> str:
     )
 
 
-def resource_anomalies(snapshots: list[dict], limit: int = 12) -> list[dict]:
+_DEFAULT_ANOMALY_RULES = {
+    "anomaly_min_samples": 8,
+    "anomaly_min_span_seconds": 300,
+    "anomaly_max_sample_age_seconds": 3600,
+    "anomaly_cpu_min_rise_percent": 20,
+    "anomaly_memory_min_rise_mb": 128,
+}
+
+
+def anomaly_rules(config: dict | None = None) -> dict:
+    """Validate opt-in sensitivity without relaxing conservative evidence gates."""
+    config = config or {}
+    bounds = {
+        "anomaly_min_samples": (8, 24),
+        "anomaly_min_span_seconds": (300, 3600),
+        "anomaly_max_sample_age_seconds": (300, 3600),
+        "anomaly_cpu_min_rise_percent": (10, 100),
+        "anomaly_memory_min_rise_mb": (32, 65536),
+    }
+    rules = {}
+    for key, fallback in _DEFAULT_ANOMALY_RULES.items():
+        value = config.get(key, fallback)
+        if isinstance(value, bool):
+            raise ValueError(f"{key} must be a finite number in its supported range")
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"{key} must be a finite number in its supported range") from exc
+        low, high = bounds[key]
+        if not math.isfinite(number) or not low <= number <= high:
+            raise ValueError(f"{key} must be between {low} and {high}")
+        if key in ("anomaly_min_samples", "anomaly_min_span_seconds",
+                   "anomaly_max_sample_age_seconds") and not number.is_integer():
+            raise ValueError(f"{key} must be an integer")
+        rules[key] = int(number) if number.is_integer() else number
+    return rules
+
+
+def resource_anomalies(snapshots: list[dict], limit: int = 12,
+                       rules: dict | None = None) -> list[dict]:
     """Conservative positive outliers from retained, successful per-host samples.
 
     This is a statistical hint, not a failure, leak or root-cause diagnosis.
     The latest observation must itself include a successful host collection.
     """
-    if len(snapshots) < 10:
+    settings = anomaly_rules(rules)
+    if len(snapshots) < settings["anomaly_min_samples"] + 2:
         return []
     previous = defaultdict(lambda: defaultdict(list))
     for snap in snapshots[-49:-1]:
@@ -140,14 +180,18 @@ def resource_anomalies(snapshots: list[dict], limit: int = 12) -> list[dict]:
         ident = str(item.get("container_id", ""))
         if host not in hosts or not ident or str(item.get("severity", "unknown")) == "unknown":
             continue
-        for metric, absolute_delta in (("cpu_percent", 20.0), ("memory_mb", 128.0)):
+        for metric, absolute_delta in (
+            ("cpu_percent", settings["anomaly_cpu_min_rise_percent"]),
+            ("memory_mb", settings["anomaly_memory_min_rise_mb"]),
+        ):
             current = _sample(item.get(metric))
             samples = previous.get((host, ident), {}).get(metric, [])
             valid = [(t, v) for t, v in samples if 0 < now - t <= 86400]
-            if current is None or len(valid) < 8:
+            if current is None or len(valid) < settings["anomaly_min_samples"]:
                 continue
             # Require enough elapsed evidence and a recent preceding measurement.
-            if valid[-1][0] - valid[0][0] < 300 or now - valid[-1][0] > 3600:
+            if (valid[-1][0] - valid[0][0] < settings["anomaly_min_span_seconds"]
+                    or now - valid[-1][0] > settings["anomaly_max_sample_age_seconds"]):
                 continue
             gaps = [valid[i][0] - valid[i - 1][0] for i in range(1, len(valid))]
             if any(g <= 0 for g in gaps) or max(gaps) > max(900, statistics.median(gaps) * 4):
@@ -168,10 +212,28 @@ def resource_anomalies(snapshots: list[dict], limit: int = 12) -> list[dict]:
     return results
 
 
-def render_anomalies(snapshots: list[dict]) -> str:
-    rows = resource_anomalies(snapshots)
-    if not rows:
+def render_anomalies(snapshots: list[dict], rules: dict | None = None) -> str:
+    settings = anomaly_rules(rules)
+    if not snapshots:
         return ""
+    rows = resource_anomalies(snapshots, rules=settings)
+    if not rows:
+        count = len(snapshots)
+        return ('<section class="pulse-anomalies" aria-label="Resource deviation evidence">'
+                '<div class="table-title"><h2>' +
+                l10n_text("Resource deviation evidence", "Ressourcenabweichungen und Nachweisqualität") +
+                '</h2></div><p>' + (
+                    l10n_text(
+                        f"Only {count} saved observations; at least {settings['anomaly_min_samples']} valid historical samples "
+                        "plus a recent current sample are needed. No resource verdict.",
+                        f"Nur {count} gespeicherte Beobachtungen; mindestens {settings['anomaly_min_samples']} gültige "
+                        "historische Messungen plus eine aktuelle Messung sind erforderlich. Kein Ressourcenurteil."
+                    ) if count < settings["anomaly_min_samples"] + 2 else l10n_text(
+                        "No positive deviation passed every evidence gate. This does not prove healthy resources; "
+                        "samples may be missing, stale or too sparse.",
+                        "Keine positive Abweichung erfüllt alle Nachweiskriterien. Das beweist keine gesunden Ressourcen; "
+                        "Messungen können fehlen, veraltet oder zu dünn sein."
+                    )) + '</p></section>')
     out = []
     for item in rows:
         unit = "%" if item["metric"] == "cpu_percent" else "MiB"
