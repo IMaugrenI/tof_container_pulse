@@ -8,7 +8,7 @@ from pathlib import Path
 
 from i18n_static import l10n_text
 from pulse_history import load_incidents, record_snapshot, render_incidents, render_incident_center, render_infrastructure_timeline
-from pulse_trends import render_anomalies, render_trends
+from pulse_trends import anomaly_rules, render_anomalies, render_trends
 from pulse_drift import normalize_ports, render_drift
 from pulse_capacity import render_capacity
 from pulse_notices import refresh_notices, render_notices
@@ -443,6 +443,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
 
         if config.get("history_enabled"):
             try:
+                resource_rules = anomaly_rules(config)
                 snapshots = record_snapshot(
                     path=config.get("history_path", ".pulse_history.json"),
                     hosts=successful_hosts, containers=observations,
@@ -450,7 +451,7 @@ def generate_pulse(output_path="pulse.html", template_path="template.html", conf
                 )
                 retained_incidents = load_incidents(config.get("history_path", ".pulse_history.json"))
                 history_html = render_incidents(snapshots) + render_infrastructure_timeline(snapshots, retained_incidents)
-                trends_html = render_trends(snapshots) + render_anomalies(snapshots)
+                trends_html = render_trends(snapshots) + render_anomalies(snapshots, resource_rules)
                 incidents_html = render_incident_center(retained_incidents)
                 if config.get("drift_enabled", True):
                     drift_html = render_drift(snapshots)
