@@ -135,3 +135,28 @@ def test_missing_services_result_is_unknown_not_application_outage():
     assert len(rows) == 1
     assert rows[0]["signal"] == "collection_unavailable"
     assert rows[0]["priority"] == "unknown"
+
+
+def test_report_reuses_anomaly_calibration_without_revealing_container_names(tmp_path):
+    from pulse_history import record_snapshot
+    from pulse_reports import build_report, export_report
+    history = tmp_path / "history.json"
+    for i in range(11):
+        observation = {
+            "host": "private-host-name", "container_id": "hidden-id",
+            "name": "secret-worker", "image": "private/image",
+            "state": "running", "severity": "ok",
+            "cpu_percent": 28 if i == 10 else 12, "memory_mb": 400,
+        }
+        record_snapshot(history, ["private-host-name"], [observation],
+                        at=(datetime(2026, 10, 31, 11, tzinfo=UTC) +
+                            timedelta(minutes=i)).isoformat())
+    assert build_report(history)["hosts"][0]["unusual_cpu_containers"] == 0
+    opts = {"anomaly_cpu_min_rise_percent": 10}
+    report = build_report(history, anomaly_config=opts)
+    assert report["hosts"][0]["unusual_cpu_containers"] == 1
+    text = str(report)
+    assert "private-host-name" not in text and "secret-worker" not in text
+    dest = tmp_path / "export.json"
+    export_report(history, dest, anomaly_config=opts)
+    assert '"unusual_cpu_containers": 1' in dest.read_text()
