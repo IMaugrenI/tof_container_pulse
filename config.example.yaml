@@ -214,6 +214,17 @@ topology_enabled: true
 diagnostics_enabled: true
 
 
+# Universal Observer B4: optional conservative resource-baseline calibration.
+# Applies only when history_enabled is true; does not trigger a new collection.
+# A large rise alone never proves a leak, outage or causal dependency.
+# Baselines are still host+container-ID scoped, require chronological samples,
+# >=5 minutes coverage and a recent measurement. Missing data is never zero.
+anomaly_min_samples: 8             # 8..24 prior valid measurements
+anomaly_min_span_seconds: 300       # 300..3600
+anomaly_max_sample_age_seconds: 3600 # 300..3600
+anomaly_cpu_min_rise_percent: 20    # 10..100 percentage points
+anomaly_memory_min_rise_mb: 128     # 32..65536 MiB
+
 # PULSE-A3/A4: When history_enabled is true, bounded CPU %, memory MiB
 # and memory % measurements are appended to the same private state file.
 # The existing --watch interval controls frequency; nothing runs in background

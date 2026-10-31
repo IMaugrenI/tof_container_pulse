@@ -23,7 +23,7 @@ def _high(value: object, threshold: float) -> bool:
         return False
 
 
-def build_report(history_path: str | Path) -> dict:
+def build_report(history_path: str | Path, anomaly_config: dict | None = None) -> dict:
     """Only identifiers from a fixed whitelist are emitted; all hosts are aliased."""
     snapshots = load_history(history_path)
     incidents = load_incidents(history_path)
@@ -38,7 +38,7 @@ def build_report(history_path: str | Path) -> dict:
             )
     active = Counter(str(item.get("host", "")) for item in incidents
                      if item.get("resolved_at") is None)
-    deviation_counts = Counter((item["host"], item["metric"]) for item in resource_anomalies(snapshots))
+    deviation_counts = Counter((item["host"], item["metric"]) for item in resource_anomalies(snapshots, rules=anomaly_config))
     summary, cooccurrences = [], []
     for host, alias in aliases.items():
         captured, containers = latest.get(host, ("", []))
@@ -84,9 +84,10 @@ def build_report(history_path: str | Path) -> dict:
     }
 
 
-def export_report(history_path: str | Path, destination: str | Path) -> dict:
+def export_report(history_path: str | Path, destination: str | Path,
+                  anomaly_config: dict | None = None) -> dict:
     """Create a new mode-0600 file, never overwrite a report or scan Docker."""
-    payload = build_report(history_path)
+    payload = build_report(history_path, anomaly_config=anomaly_config)
     target = Path(destination)
     if not target.parent.is_dir():
         raise FileNotFoundError("Report directory does not exist")

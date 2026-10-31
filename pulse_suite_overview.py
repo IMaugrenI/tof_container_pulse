@@ -78,7 +78,7 @@ def collection_summary(results: dict[str, object], docker_evidence: dict | None 
         f"{successful} von 6 Datenerfassungen abgeschlossen; {unknown} nicht bestätigt."
     )
     return (
-        '<section class="pulse-suite-summary" aria-label="Pulse Suite collection results" '
+        '<section id="pulse-suite-summary" class="pulse-suite-summary" aria-label="Pulse Suite collection results" '
         'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
         'border-radius:var(--radius-lg)">'
         '<section class="table-title"><h2>' +
@@ -132,7 +132,7 @@ def application_checks_summary(entries: list[dict] | None, collected: bool) -> s
             l10n_text("State", "Zustand") + "</th><th>Status</th><th>" +
             l10n_text("Latency", "Latenz") + "</th></tr></thead><tbody>" +
             "".join(rows) + "</tbody></table></div>")
-    return ('<section class="pulse-app-summary" aria-label="Application check results" '
+    return ('<section id="pulse-app-summary" class="pulse-app-summary" aria-label="Application check results" '
             'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
             'border-radius:var(--radius-lg)"><section class="table-title"><h2>' +
             l10n_text("Application checks", "Anwendungschecks") +
@@ -216,7 +216,7 @@ def declared_link_summary(links: object, docker: dict | None,
                     recommendation + "</td></tr>")
     if not rows:
         return ""
-    return ('<section class="pulse-declared-links" aria-label="Declared application links" '
+    return ('<section id="pulse-declared-links" class="pulse-declared-links" aria-label="Declared application links" '
             'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
             'border-radius:var(--radius-lg)"><section class="table-title"><h2>' +
             l10n_text("Declared infrastructure links", "Deklarierte Infrastrukturverknüpfungen") +
@@ -290,7 +290,7 @@ def application_history_summary(snapshots: list[dict] | None, issue: str | None 
             "</tbody></table></div>" if rows else "<p>" +
             l10n_text("No valid local application samples.", "Keine gültigen lokalen Anwendungsmessungen.") + "</p>"
         )
-    return ('<section class="pulse-app-history" aria-label="Opt-in application history" '
+    return ('<section id="pulse-app-history" class="pulse-app-history" aria-label="Opt-in application history" '
             'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
             'border-radius:var(--radius-lg)"><section class="table-title"><h2>' +
             l10n_text("Application history", "Anwendungshistorie") +
@@ -356,7 +356,7 @@ def infrastructure_matrix(docker_evidence: dict | None, application_links: objec
                         esc(", ".join(str(h)[:120] for h in failed[:20])) +
                         ". " + l10n_text("State unknown, no outage proven.",
                                          "Zustand unbekannt, kein Ausfall bewiesen.") + "</p>")
-    return ('<section class="pulse-infrastructure-matrix" aria-label="Combined infrastructure evidence" '
+    return ('<section id="pulse-infrastructure-matrix" class="pulse-infrastructure-matrix" aria-label="Combined infrastructure evidence" '
             'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
             'border-radius:var(--radius-lg)"><div class="table-title"><h2>' +
             l10n_text("Infrastructure and application evidence", "Infrastruktur- und Anwendungsnachweise") +
@@ -366,6 +366,149 @@ def infrastructure_matrix(docker_evidence: dict | None, application_links: objec
                 "Docker-Beziehungen stammen nur aus Compose-depends_on-Labels; App-Zuordnungen nur aus Betreiberdeklarationen. "
                 "Checks laufen auf diesem Rechner, nicht zwingend auf dem Docker-Host. Unabhängige Zustände, kein Ursachenbeweis.") +
             "</p>" + "".join(sections) + "</section>")
+
+
+def diagnosis_queue(docker: dict | None, app_entries: list[dict] | None,
+                    statuses: dict[str, object], limit: int = 12) -> list[dict]:
+    """Deterministic manual queue from independent, already collected evidence."""
+    docker = docker or {}
+    rows = []
+    for host in (docker.get("failed_hosts") or [])[:80]:
+        rows.append({"source": "docker", "scope": str(host)[:120],
+                     "signal": "collection_unavailable", "priority": "unknown",
+                     "action": "Verify Docker context connectivity and permissions manually."})
+    for item in (docker.get("containers") or [])[:1500]:
+        severity = str(item.get("severity", "unknown"))
+        if severity not in ("critical", "warn"):
+            continue
+        scope = str(item.get("host", ""))[:120] + " / " + str(item.get("project", ""))[:120] + " / " + str(item.get("service", ""))[:120]
+        rows.append({"source": "docker", "scope": scope,
+                     "signal": severity + "_container_observation", "priority": severity,
+                     "action": "Review the individual container evidence and metrics manually."})
+    if statuses.get("services") is True and app_entries is not None:
+        for item in app_entries[:100]:
+            severity = str(item.get("severity", "unknown"))
+            if severity not in ("critical", "warn", "unknown"):
+                continue
+            rows.append({"source": "services", "scope": "suite_local / " + str(item.get("name", ""))[:120],
+                         "signal": severity + "_configured_check", "priority": severity,
+                         "action": "Review the explicitly configured check independently; this is not a Docker-host assertion."})
+    elif statuses.get("services") is not True:
+        rows.append({"source": "services", "scope": "suite_local", "signal": "collection_unavailable",
+                     "priority": "unknown", "action": "Review Services collection before interpreting application state."})
+    order = {"critical": 0, "warn": 1, "unknown": 2}
+    rows.sort(key=lambda item: (order.get(item["priority"], 3), item["source"], item["scope"], item["signal"]))
+    return rows[:max(0, min(limit, 12))]
+
+
+def render_diagnosis_queue(docker: dict | None, app_entries: list[dict] | None,
+                           statuses: dict[str, object]) -> str:
+    """Rule-only triage, with uncertainty visible. No LLM or action dispatch."""
+    rows = diagnosis_queue(docker, app_entries, statuses)
+    esc = lambda value: html.escape(str(value), quote=True)
+    if not rows:
+        body = '<p>' + l10n_text(
+            "No independent review signals selected. This does not prove system health.",
+            "Keine einzelnen Prüfsignale ausgewählt. Dies beweist keine Systemgesundheit.") + '</p>'
+    else:
+        body = ('<div class="table-shell"><table><thead><tr><th>' +
+                l10n_text("Priority", "Priorität") + '</th><th>' +
+                l10n_text("Source / scope", "Quelle / Bereich") +
+                '</th><th>' + l10n_text("Observed signal", "Beobachtetes Signal") +
+                '</th><th>' + l10n_text("Manual next check", "Nächste manuelle Prüfung") +
+                '</th></tr></thead><tbody>' + "".join(
+                    '<tr><td>' + esc(item["priority"].upper()) + '</td><td>' +
+                    esc(item["source"]) + ' / ' + esc(item["scope"]) +
+                    '</td><td>' + esc(item["signal"]) + '</td><td>' +
+                    esc(item["action"]) + '</td></tr>' for item in rows
+                ) + '</tbody></table></div>')
+    return ('<section id="pulse-triage-queue" class="pulse-triage-queue" '
+            'aria-label="Evidence-based manual diagnostics" '
+            'style="margin-top:24px;padding:16px;border:1px solid var(--panel-line);'
+            'border-radius:var(--radius-lg)"><div class="table-title"><h2>' +
+            l10n_text("Manual diagnostic queue", "Manuelle Diagnoseliste") +
+            '</h2></div><p>' +
+            l10n_text("Independent source observations only, capped at 12; never causal proof. "
+                      "The optional local LLM requires a separate explicit CLI action.",
+                      "Nur unabhängige Quellbeobachtungen, maximal 12; kein Ursachenbeweis. "
+                      "Das optionale lokale LLM erfordert einen getrennten ausdrücklichen CLI-Aufruf.") +
+            '</p>' + body + '</section>')
+
+
+def evidence_navigation(active: set[str] | None = None) -> str:
+    """Keyboard-friendly links to present sections and the six original pages."""
+    active = active or set()
+    targets = (
+        ("pulse-suite-summary", "Collection quality", "Erfassungsqualität"),
+        ("pulse-triage-queue", "Manual diagnosis", "Manuelle Diagnose"),
+        ("pulse-app-summary", "Applications", "Anwendungen"),
+        ("pulse-app-history", "Application history", "Anwendungshistorie"),
+        ("pulse-infrastructure-matrix", "Infrastructure", "Infrastruktur"),
+        ("pulse-declared-links", "Explicit links", "Explizite Zuordnungen"),
+    )
+    links = ['<a href="#' + target + '">' + l10n_text(en, de) + '</a>'
+             for target, en, de in targets if target in active]
+    pages = (("pulse.html", "Containers", "Container"), ("hardware.html", "Hardware", "Hardware"),
+             ("ports.html", "Ports", "Ports"), ("storage.html", "Storage", "Speicher"),
+             ("services.html", "Services", "Dienste"), ("security.html", "Security", "Sicherheit"))
+    links += ['<a href="' + filename + '">' + l10n_text(en, de) + '</a>'
+              for filename, en, de in pages]
+    return ('<nav class="pulse-evidence-index" aria-label="Pulse evidence navigation" '
+            'style="display:flex;flex-wrap:wrap;gap:10px;margin:18px 0;">' +
+            ''.join(links) + '</nav>')
+
+
+def table_filter_controls(target: str) -> str:
+    """One accessible in-page filter; only known static target selectors."""
+    if target not in ("pulse-triage-queue", "pulse-app-summary", "pulse-infrastructure-matrix"):
+        return ""
+    return ('<div class="pulse-evidence-filter" data-filter-target="' + target +
+            '" style="margin:10px 0;"><label>' +
+            l10n_text("Show evidence", "Nachweise anzeigen") +
+            ' <select aria-label="Filter evidence by severity">'
+            '<option value="">' + l10n_text("All states", "Alle Zustände") + '</option>'
+            '<option value="critical">CRITICAL</option><option value="warn">WARN</option>'
+            '<option value="unknown">UNKNOWN</option><option value="ok">OK</option>'
+            '<option value="mixed">MIXED</option></select></label> '
+            '<output aria-live="polite"></output></div>')
+
+
+_FILTER_SCRIPT = """
+<script>
+(function () {
+  'use strict';
+  const groups = document.querySelectorAll('.pulse-evidence-filter[data-filter-target]');
+  const allowed = {
+    'pulse-triage-queue': 0,
+    'pulse-app-summary': 3,
+    'pulse-infrastructure-matrix': 1
+  };
+  groups.forEach(function (group) {
+    const target = group.getAttribute('data-filter-target');
+    if (!Object.prototype.hasOwnProperty.call(allowed, target)) return;
+    const panel = document.getElementById(target);
+    const select = group.querySelector('select');
+    const output = group.querySelector('output');
+    if (!panel || !select || !output) return;
+    const rows = Array.from(panel.querySelectorAll('tbody tr'));
+    function applyFilter() {
+      let visible = 0;
+      rows.forEach(function (row) {
+        const cell = row.cells[allowed[target]];
+        const state = cell ? cell.textContent.trim().toLowerCase() : '';
+        const match = !select.value || state === select.value;
+        row.hidden = !match;
+        if (match) visible += 1;
+      });
+      output.textContent = visible + ' / ' + rows.length;
+    }
+    select.addEventListener('change', applyFilter);
+    applyFilter();
+  });
+}());
+</script>
+"""
+
 
 
 def add_suite_summary(output_path: str | Path, results: dict[str, object],
@@ -381,15 +524,27 @@ def add_suite_summary(output_path: str | Path, results: dict[str, object],
     marker = '<section class="feature-strip" aria-label="Design principles">'
     if marker not in source or 'class="pulse-suite-summary"' in source:
         return False
-    source = source.replace(
-        marker,
-        collection_summary(results, docker_evidence, service_entries, completed_at) +
-        application_checks_summary(service_entries, results.get("services") is True) +
-        application_history_summary(application_history, application_history_issue) +
-        infrastructure_matrix(docker_evidence, application_links, service_entries,
-                              results.get("services") is True) +
-        declared_link_summary(application_links, docker_evidence, service_entries,
-                              results.get("services") is True) +
-        "\n" + marker, 1)
+    summary = collection_summary(results, docker_evidence, service_entries, completed_at)
+    triage = render_diagnosis_queue(docker_evidence, service_entries, results)
+    apps = application_checks_summary(service_entries, results.get("services") is True)
+    history = application_history_summary(application_history, application_history_issue)
+    matrix = infrastructure_matrix(docker_evidence, application_links, service_entries,
+                                   results.get("services") is True)
+    declared = declared_link_summary(application_links, docker_evidence, service_entries,
+                                     results.get("services") is True)
+    chunks = [summary, triage, apps, history, matrix, declared]
+    active = {name for name in ("pulse-suite-summary", "pulse-triage-queue",
+              "pulse-app-summary", "pulse-app-history", "pulse-infrastructure-matrix",
+              "pulse-declared-links")
+              if any('id="' + name + '"' in chunk for chunk in chunks)}
+    nav = evidence_navigation(active)
+    source = source.replace(marker,
+                            nav + summary + table_filter_controls("pulse-triage-queue") +
+                            triage + table_filter_controls("pulse-app-summary") +
+                            apps + history +
+                            (table_filter_controls("pulse-infrastructure-matrix") if matrix else "") +
+                            matrix + declared + "\n" + marker, 1)
+    if "</body>" in source:
+        source = source.replace("</body>", _FILTER_SCRIPT + "\n</body>", 1)
     path.write_text(source, encoding="utf-8")
     return True

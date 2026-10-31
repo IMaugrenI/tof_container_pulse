@@ -216,7 +216,8 @@ def main() -> int:
         if not config.get("history_enabled"):
             parser.error("--export-incident-report requires an enabled history in --config")
         try:
-            result = export_report(config.get("history_path", ".pulse_history.json"), args.export_incident_report)
+            result = export_report(config.get("history_path", ".pulse_history.json"),
+                                   args.export_incident_report, anomaly_config=config)
         except (ValueError, OSError, TypeError) as exc:
             parser.error(str(exc))
         print(json.dumps(result, indent=2))
